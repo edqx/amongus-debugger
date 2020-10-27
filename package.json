@@ -1,6 +1,6 @@
 {
-  "name": "TODO",
-  "description": "TODO",
+  "name": "amongus-debugger",
+  "description": "Packet debugger and tools for Among Us.",
   "version": "0.0.1",
   "scripts": {
     "dev": "sapper dev",
