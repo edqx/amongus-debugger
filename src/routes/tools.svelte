@@ -68,17 +68,21 @@
     $: vbytes = (vbytes.replace(/[^a-fA-f0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ").toUpperCase();
 
     function setVersionBytes() {
-        vbytes = EncodeVersion({
-            year: vyear,
-            month: vmonth,
-            day: vday,
-            build: vbuild
-        });
-        
-        const buff = Buffer.alloc(4);
-        buff.writeUInt32LE(Math.min(vbytes, (2 ** 32) - 1));
+        if (vyear || vmonth || vday || vbuild) {
+            vbytes = EncodeVersion({
+                year: vyear,
+                month: vmonth,
+                day: vday,
+                build: vbuild
+            });
+            
+            const buff = Buffer.alloc(4);
+            buff.writeUInt32LE(Math.min(vbytes, (2 ** 32) - 1));
 
-        vbytes = vbytes ? [...buff].map(byte => hex(byte)).join(" ") : "";
+            vbytes = vbytes ? [...buff].map(byte => hex(byte)).join(" ") : "";
+        } else {
+            vbytes = "";
+        }
     }
 
     function setVersion() {
@@ -92,8 +96,6 @@
             vday = version.day;
             vbuild = version.build;
         }
-
-        console.log(version);
     }
 </script>
 
