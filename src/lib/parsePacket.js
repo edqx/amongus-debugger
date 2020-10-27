@@ -526,7 +526,7 @@ export default function parsePacket(buffer, bound) {
                                 game.length = reader.uint16LE();
                                 reader.byte();
                                 reader.expect(0x04, "game ip");
-                                game.ip = reader.bytes(4).join(",");
+                                game.ip = reader.bytes(4).join(".");
                                 reader.expect(0x02, "game port");
                                 game.port = reader.uint16LE();
                                 reader.expect(0x04, "game code");

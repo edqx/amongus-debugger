@@ -497,10 +497,12 @@ export default function renderPacket(packet) {
                     case 0x10:
                         if (packet.bound === "client") {
                             rendered += detail("Length: ", payload.length);
-                            rendered += detail("Servers: (" + payload.games.length + ")");
+                            rendered += detail("Games: (" + payload.games.length + ")");
+                            tab();
                             for (let i = 0; i < payload.games.length; i++) {
                                 const game = payload.games[i];
 
+                                rendered += detail((i + 1) + ":");
                                 tab();
                                 rendered += detail("Length: " + game.length);
                                 rendered += detail("IP: " + game.ip);
@@ -514,6 +516,7 @@ export default function renderPacket(packet) {
                                 rendered += detail("Max players: " + game.max_players);
                                 untab();
                             }
+                            untab();
                         } else {
                             rendered += renderGameOptions(payload.options);
                         }

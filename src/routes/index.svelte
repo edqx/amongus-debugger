@@ -55,6 +55,8 @@
         if (selectedPacket >= workspace.packets.length) {
             selectedPacket--;
         }
+        
+        onSelect();
     }
 
     $: selectedPacket, onSelect();
