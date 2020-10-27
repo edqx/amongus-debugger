@@ -1,0 +1,21 @@
+export default {
+    0x00: "None",
+    0x01: "Game full",
+    0x02: "Game started",
+    0x03: "Game not found",
+    0x05: "Incorrect version",
+    0x06: "Banned",
+    0x07: "Kicked",
+    0x08: "Custom",
+    0x09: "Invalid name",
+    0x0a: "Hacking",
+    0x10: "Destroy",
+    0x11: "Error",
+    0x12: "Incorrect game",
+    0x13: "Server request",
+    0x14: "Server full",
+    0xd0: "Focus lost background",
+    0xd1: "Intentional leaving",
+    0xd2: "Focus lost",
+    0xd3: "New connection"
+}

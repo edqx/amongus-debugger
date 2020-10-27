@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap");
+
+* {
+    box-sizing: border-box;
+}
+
+html, body, .wrapper {
+    padding: 0;
+    margin: 0;
+    background-color: #100f0f;
+    color: #cccecc;
+    font-family: "Andale Mono", monospace;
+}
+
+body {
+    overflow-y: scroll;
+    display: flex;
+    flex-direction: column;
+}
+
+.wrapper {
+    flex: 1 1 0;
+    margin-top: 3%;
+    margin-bottom: 5%;
+    margin-left: 15%;
+    margin-right: 15%;
+    display: flex;
+    flex-direction: column;
+}
+
+button {
+    background-color:  #d0271a;
+    outline: none;
+    border: none;
+    border-radius: 2px;
+    padding: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+    color: #cccecc;
+    cursor: pointer;
+}
+
+input {
+    margin-bottom: 8px;
+    border-radius: 8px;
+    padding: 6px;
+    outline: none;
+    border: none;
+    font-family: "Andale Mono", monospace;
+    background-color: #cccecc;
+    color: #2e2e2e;
+}
+
+a {
+    color: white;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button:hover {
+    background-color: #aa1e14;
+}
+
+.title {
+    font-size: 24pt;
+}
+
+.error {
+    color: #f1483b;
+}
+
+.warning {
+    color: #fbcd2d;
+}
+
+.important {
+    color: #1974c4;
+}
+
+.detail {
+    color: #6cc6de;
+}
+
+.string {
+    color: #f34d6e;
+}
+
+.comment {
+    color: #777777;
+}
+
+@media (max-width: 400px) {
+    .wrapper {
+        margin-left: 10%;
+        margin-right: 10%;
+    }
+}
