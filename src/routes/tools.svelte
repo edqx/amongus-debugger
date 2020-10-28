@@ -102,7 +102,7 @@
 
     let packedint = 0;
     let packedbytes = "";
-    
+
     $: packedint = (packedint || "").toString().replace(/[^0-9]/g, "");
     $: packedbytes = (packedbytes.replace(/[^a-fA-f0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ").toUpperCase();
 
@@ -174,7 +174,7 @@
         <span>Packed int</span><br>
         <input placeholder="Integer" type="number" bind:value={packedint} on:input={setPackedIntBytes}/><br>
         <span>Bytes</span><br>
-        <input placeholder="Bytes" maxlength=11 bind:value={packedbytes} on:input={setPackedInt}/><br>
+        <input placeholder="Bytes" maxlength=22 bind:value={packedbytes} on:input={setPackedInt}/><br>
     </div>
 </div>
 
