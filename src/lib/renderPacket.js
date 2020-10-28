@@ -497,6 +497,9 @@ export default function renderPacket(packet) {
                     case 0x10:
                         if (packet.bound === "client") {
                             rendered += detail("Length: ", payload.length);
+                            rendered += detail("The Skeld games: ", payload.count[0]);
+                            rendered += detail("Mira HQ games: ", payload.count[1]);
+                            rendered += detail("Polus games: ", payload.count[2]);
                             rendered += detail("Games: (" + payload.games.length + ")");
                             tab();
                             for (let i = 0; i < payload.games.length; i++) {

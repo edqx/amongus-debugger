@@ -2,6 +2,8 @@
     import { Int2Code, Code2Int } from "../lib/util/GameCodes.js"
     import { EncodeVersion, DecodeVersion } from "../lib/util/Versions.js"
     import { Buffer } from "buffer/"
+    import BufferReader from "../lib/util/BufferReader.js"
+
     import toBuffer from "../lib/toBuffer.js"
 
     let v1code = "";
@@ -60,20 +62,20 @@
 
     let vbytes = "";
 
-    $: vyear = parseInt(vyear.toString().replace(/[^0-9]/g, "")) || "";
-    $: vmonth = parseInt(vmonth.toString().replace(/[^0-9]/g, "")) || "";
-    $: vday = parseInt(vday.toString().replace(/[^0-9]/g, "")) || "";
-    $: vbuild = parseInt(vbuild.toString().replace(/[^0-9]/g, "")) || "";
+    $: vyear = vyear.toString().replace(/[^0-9]/g, "");
+    $: vmonth = vmonth.toString().replace(/[^0-9]/g, "");
+    $: vday = vday.toString().replace(/[^0-9]/g, "");
+    $: vbuild = vbuild.toString().replace(/[^0-9]/g, "");
     
     $: vbytes = (vbytes.replace(/[^a-fA-f0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ").toUpperCase();
 
     function setVersionBytes() {
         if (vyear || vmonth || vday || vbuild) {
             vbytes = EncodeVersion({
-                year: vyear,
-                month: vmonth,
-                day: vday,
-                build: vbuild
+                year: parseInt(vyear) || 0,
+                month: parseInt(vmonth) || 0,
+                day: parseInt(vday) || 0,
+                build: parseInt(vbuild) || 0
             });
             
             const buff = Buffer.alloc(4);
@@ -91,10 +93,48 @@
         const version = vbytes.length ? DecodeVersion(buff.byteLength >= 4 ? buff.readInt32LE(0x00) : 0) : null;
 
         if (version) {
-            vyear = version.year;
-            vmonth = version.month;
-            vday = version.day;
-            vbuild = version.build;
+            vyear = version.year.toString();
+            vmonth = version.month.toString();
+            vday = version.day.toString();
+            vbuild = version.build.toString();
+        }
+    }
+
+    let packedint = 0;
+    let packedbytes = "";
+    
+    $: packedint = (packedint || "").toString().replace(/[^0-9]/g, "");
+    $: packedbytes = (packedbytes.replace(/[^a-fA-f0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ").toUpperCase();
+
+    function setPackedIntBytes() {
+        let bytes = [];
+        let val = packedint;
+
+        do {
+            let b = val & 0b11111111;
+
+            if (val >= 0b10000000) {
+                b |= 0b10000000;
+            }
+
+            bytes.push(b);
+
+            val >>= 7;
+        } while (val > 0);
+
+        console.log(bytes);
+        
+        packedbytes = bytes.map(byte => hex(byte)).join(" ");
+    }
+
+    function setPackedInt() {
+        const buff = toBuffer(packedbytes);
+        const reader = new BufferReader(buff);
+
+        try {
+            packedint = reader.packed().toString();
+        } catch (e) {
+            packedint = "0";
         }
     }
 </script>
@@ -129,6 +169,12 @@
             <span>Bytes</span><br>
             <input placeholder="Bytes" maxlength=11 bind:value={vbytes} on:input={setVersion}/>
         </div>
+    </div>
+    <div class="conversion">
+        <span>Packed int</span><br>
+        <input placeholder="Integer" type="number" bind:value={packedint} on:input={setPackedIntBytes}/><br>
+        <span>Bytes</span><br>
+        <input placeholder="Bytes" maxlength=11 bind:value={packedbytes} on:input={setPackedInt}/><br>
     </div>
 </div>
 

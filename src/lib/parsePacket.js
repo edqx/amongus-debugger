@@ -519,30 +519,47 @@ export default function parsePacket(buffer, bound) {
                             reader.byte();
                             const start = reader.offset;
                             
+                            payload.count = [];
                             payload.games = [];
                             while (reader.offset < start + payload.length) {
                                 const game = {};
                                 reader.expect(0x02, "game length");
                                 game.length = reader.uint16LE();
-                                reader.byte();
-                                reader.expect(0x04, "game ip");
-                                game.ip = reader.bytes(4).join(".");
-                                reader.expect(0x02, "game port");
-                                game.port = reader.uint16LE();
-                                reader.expect(0x04, "game code");
-                                game.code = reader.int32LE();
-                                reader.expect(0x01, "game name");
-                                game.name = reader.string();
-                                reader.expect(0x01, "number of players");
-                                game.num_players = reader.uint8();
-                                reader.expect(0x01, "game age");
-                                game.age = reader.packed();
-                                reader.expect(0x01, "map ID");
-                                game.map = reader.uint8();
-                                reader.expect(0x01, "imposter count");
-                                game.imposters = reader.uint8();
-                                reader.expect(0x01, "max players");
-                                game.max_players = reader.uint8();
+
+                                const tag = reader.byte();
+
+                                console.log(tag);
+
+                                switch (tag) {
+                                    case 0x00:
+                                        reader.expect(0x04, "game ip");
+                                        game.ip = reader.bytes(4).join(".");
+                                        reader.expect(0x02, "game port");
+                                        game.port = reader.uint16LE();
+                                        reader.expect(0x04, "game code");
+                                        game.code = reader.int32LE();
+                                        reader.expect(0x01, "game name");
+                                        game.name = reader.string();
+                                        reader.expect(0x01, "number of players");
+                                        game.num_players = reader.uint8();
+                                        reader.expect(0x01, "game age");
+                                        game.age = reader.packed();
+                                        reader.expect(0x01, "map ID");
+                                        game.map = reader.uint8();
+                                        reader.expect(0x01, "imposter count");
+                                        game.imposters = reader.uint8();
+                                        reader.expect(0x01, "max players");
+                                        game.max_players = reader.uint8();
+                                        break;
+                                    case 0x01:
+                                        reader.expect(0x04, "skeld games");
+                                        game.push(reader.uint32LE());
+                                        reader.expect(0x04, "mira hq games");
+                                        game.push(reader.uint32LE());
+                                        reader.expect(0x04, "polus games");
+                                        game.push(reader.uint32LE());
+                                        break;
+                                }
                                 
                                 payload.games.push(game);
                             }
