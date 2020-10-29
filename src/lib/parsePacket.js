@@ -100,11 +100,11 @@ export default function parsePacket(buffer, bound) {
                 reader.expect(0x02, "payload length");
                 payload.length = reader.uint16LE();
                 reader.expect(0x01, "payload tag");
-                payload.tag = reader.uint8();
+                payload.list_tag = reader.uint8();
 
                 const payloadend = reader.offset + payload.length;
 
-                switch (payload.tag) {
+                switch (payload.list_tag) {
                     case 0x00: // Host game
                         if (packet.bound === "client") {
                             reader.expect(0x04, "game code");
@@ -168,7 +168,7 @@ export default function parsePacket(buffer, bound) {
                         reader.expect(0x04, "code");
                         payload.code = reader.int32LE();
     
-                        if (payload.tag === 0x06) {
+                        if (payload.list_tag === 0x06) {
                             reader.expect(0x01, "recipient");
                             payload.recipient = reader.packed();
                         }
@@ -513,25 +513,23 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x10: // Get game list v2
                         if (packet.bound === "client") {
-                            reader.expect(0x02, "game list length");
+                            reader.expect(0x02, "list length");
                             payload.length = reader.uint16LE();
-                            reader.expect(0x01, "game list flag");
-                            reader.byte();
-                            const start = reader.offset;
+                            reader.expect(0x01, "list tag");
+                            payload.list_tag = reader.byte();
                             
-                            payload.count = [];
-                            payload.games = [];
-                            while (reader.offset < start + payload.length) {
-                                const game = {};
-                                reader.expect(0x02, "game length");
-                                game.length = reader.uint16LE();
+                            
+                            switch (payload.list_tag) {
+                                case 0x00:
+                                    const start = reader.offset;
 
-                                const tag = reader.byte();
+                                    payload.games = [];
+                                    while (reader.offset < start + payload.length) {
+                                        const game = {};
+                                        reader.expect(0x02, "game length");
+                                        game.length = reader.uint16LE();
+                                        reader.byte();
 
-                                console.log(tag);
-
-                                switch (tag) {
-                                    case 0x00:
                                         reader.expect(0x04, "game ip");
                                         game.ip = reader.bytes(4).join(".");
                                         reader.expect(0x02, "game port");
@@ -550,19 +548,21 @@ export default function parsePacket(buffer, bound) {
                                         game.imposters = reader.uint8();
                                         reader.expect(0x01, "max players");
                                         game.max_players = reader.uint8();
-                                        break;
-                                    case 0x01:
-                                        reader.expect(0x04, "skeld games");
-                                        game.push(reader.uint32LE());
-                                        reader.expect(0x04, "mira hq games");
-                                        game.push(reader.uint32LE());
-                                        reader.expect(0x04, "polus games");
-                                        game.push(reader.uint32LE());
-                                        break;
+                                        
+                                        payload.games.push(game);
+                                    }
+                                    break;
+                                case 0x01:
+                                    payload.count = [];
+
+                                    reader.expect(0x04, "skeld games");
+                                    payload.count.push(reader.uint32LE());
+                                    reader.expect(0x04, "mira hq games");
+                                    payload.count.push(reader.uint32LE());
+                                    reader.expect(0x04, "polus games");
+                                    payload.count.push(reader.uint32LE());
+                                    break;
                                 }
-                                
-                                payload.games.push(game);
-                            }
                         } else {
                             reader.expect(0x01, "game list flag");
                             reader.byte();

@@ -17,6 +17,7 @@ import pets from "./constants/pets.js"
 import skins from "./constants/skins.js"
 import notetypes from "./constants/notetypes.js"
 import systemtypes from "./constants/systemtypes.js"
+import gamelist_tags from "./constants/gamelist_tags.js"
 
 import { Int2Code } from "./util/GameCodes.js"
 import { DecodeVersion } from "./util/Versions.js"
@@ -496,30 +497,38 @@ export default function renderPacket(packet) {
                         break;
                     case 0x10:
                         if (packet.bound === "client") {
-                            rendered += detail("Length: ", payload.length);
-                            rendered += detail("The Skeld games: ", payload.count[0]);
-                            rendered += detail("Mira HQ games: ", payload.count[1]);
-                            rendered += detail("Polus games: ", payload.count[2]);
-                            rendered += detail("Games: (" + payload.games.length + ")");
-                            tab();
-                            for (let i = 0; i < payload.games.length; i++) {
-                                const game = payload.games[i];
+                            rendered += detail("Length: " + payload.length);
+                            rendered += important("Tag: " + payload.tag + " (" + (gamelist_tags[payload.tag] || "Unknown.") + ")");
+                            
+                            switch (payload.list_tag) {
+                                case 0x00:
+                                    rendered += detail("Games: (" + payload.games.length + ")");
+                                    tab();
+                                    for (let i = 0; i < payload.games.length; i++) {
+                                        const game = payload.games[i];
 
-                                rendered += detail((i + 1) + ":");
-                                tab();
-                                rendered += detail("Length: " + game.length);
-                                rendered += detail("IP: " + game.ip);
-                                rendered += detail("Port: " + game.port);
-                                rendered += detail("Code: " + Int2Code(game.code));
-                                rendered += detail("Name: " + string(game.name));
-                                rendered += detail("Players: " + game.num_players);
-                                rendered += detail("Game age: " + game.age + "s");
-                                rendered += detail("Map: " + game.map + " (" + maps[game.map] + ")");
-                                rendered += detail("Imposters: " + game.imposters);
-                                rendered += detail("Max players: " + game.max_players);
-                                untab();
+                                        rendered += detail((i + 1) + ":");
+                                        tab();
+                                        rendered += detail("Length: " + game.length);
+                                        rendered += detail("IP: " + game.ip);
+                                        rendered += detail("Port: " + game.port);
+                                        rendered += detail("Code: " + Int2Code(game.code));
+                                        rendered += detail("Name: " + string(game.name));
+                                        rendered += detail("Players: " + game.num_players);
+                                        rendered += detail("Game age: " + game.age + "s");
+                                        rendered += detail("Map: " + game.map + " (" + maps[game.map] + ")");
+                                        rendered += detail("Imposters: " + game.imposters);
+                                        rendered += detail("Max players: " + game.max_players);
+                                        untab();
+                                    }
+                                    untab();
+                                    break;
+                                case 0x01:
+                                    rendered += detail("The Skeld games: ", payload.count[0]);
+                                    rendered += detail("Mira HQ games: ", payload.count[1]);
+                                    rendered += detail("Polus games: ", payload.count[2]);
+                                    break;
                             }
-                            untab();
                         } else {
                             rendered += renderGameOptions(payload.options);
                         }
