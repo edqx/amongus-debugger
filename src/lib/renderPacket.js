@@ -205,6 +205,7 @@ export default function renderPacket(packet) {
                             if (payload.mapOwnership & 0b100) {
                                 rendered += detail("Polus");
                             }
+                            untab();
                         }
                         break;
                     case 0x02:
