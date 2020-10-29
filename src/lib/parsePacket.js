@@ -97,12 +97,14 @@ export default function parsePacket(buffer, bound) {
             while (reader.offset < reader.size) {
                 const payload = {};
 
+                console.log(reader.offset, reader.size);
+
                 reader.expect(0x02, "payload length");
                 payload.length = reader.uint16LE();
                 reader.expect(0x01, "payload tag");
                 payload.tag = reader.uint8();
 
-                const payloadend = reader.offset + payload.length;
+                const payloadend = reader.offset + payload.length - 1;
 
                 switch (payload.tag) {
                     case 0x00: // Host game
@@ -118,11 +120,13 @@ export default function parsePacket(buffer, bound) {
                             payload.error = reader.size !== 18;
     
                             if (payload.error) {
-                                reader.expect(0x01, "reason");
-                                payload.reason = reader.uint8();
-    
-                                if (payload.reason === 0x08 && reader.left) {
-                                    payload.message = reader.string();
+                                if (reader.offset < payloadend) {
+                                    reader.expect(0x01, "reason");
+                                    payload.reason = reader.uint8();
+        
+                                    if (payload.reason === 0x08 && reader.offset < payloadend) {
+                                        payload.message = reader.string();
+                                    }
                                 }
                             } else {
                                 reader.expect(0x04, "game code");
@@ -168,7 +172,7 @@ export default function parsePacket(buffer, bound) {
                         reader.expect(0x04, "code");
                         payload.code = reader.int32LE();
     
-                        if (payload.list_tag === 0x06) {
+                        if (payload.tag === 0x06) {
                             reader.expect(0x01, "recipient");
                             payload.recipient = reader.packed();
                         }
@@ -518,13 +522,12 @@ export default function parsePacket(buffer, bound) {
                             reader.expect(0x01, "list tag");
                             payload.list_tag = reader.byte();
                             
-                            
                             switch (payload.list_tag) {
                                 case 0x00:
                                     const start = reader.offset;
 
                                     payload.games = [];
-                                    while (reader.offset < start + payload.length) {
+                                    while (reader.offset < payloadend) {
                                         const game = {};
                                         reader.expect(0x02, "game length");
                                         game.length = reader.uint16LE();
@@ -573,7 +576,7 @@ export default function parsePacket(buffer, bound) {
                         packet.warnings.push("Invalid or unsupported tag.");
                 }
 
-                reader.goto(payloadend);
+                reader.goto(payloadend + 1);
                 packet.payloads.push(payload);
             }
             break;
@@ -591,6 +594,13 @@ export default function parsePacket(buffer, bound) {
             break;
         case 0x09: // Disconnect
             if (reader.left) {
+                reader.expect(0x01, "flag");
+                reader.jump(0x01);
+                reader.expect(0x02, "length");
+                reader.jump(0x02);
+                reader.expect(0x01, "flag");
+                reader.jump(0x01);
+
                 reader.expect(0x01, "reason");
                 packet.reason = reader.uint8();
 
