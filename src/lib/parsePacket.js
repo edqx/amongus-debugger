@@ -97,8 +97,6 @@ export default function parsePacket(buffer, bound) {
             while (reader.offset < reader.size) {
                 const payload = {};
 
-                console.log(reader.offset, reader.size);
-
                 reader.expect(0x02, "payload length");
                 payload.length = reader.uint16LE();
                 reader.expect(0x01, "payload tag");
