@@ -100,11 +100,11 @@ export default function parsePacket(buffer, bound) {
                 reader.expect(0x02, "payload length");
                 payload.length = reader.uint16LE();
                 reader.expect(0x01, "payload tag");
-                payload.list_tag = reader.uint8();
+                payload.tag = reader.uint8();
 
                 const payloadend = reader.offset + payload.length;
 
-                switch (payload.list_tag) {
+                switch (payload.tag) {
                     case 0x00: // Host game
                         if (packet.bound === "client") {
                             reader.expect(0x04, "game code");
