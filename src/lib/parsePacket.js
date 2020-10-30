@@ -115,7 +115,7 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x01: // Join game
                         if (packet.bound === "client") {
-                            payload.error = reader.size !== 18;
+                            payload.error = payload.length !== 12;
     
                             if (payload.error) {
                                 if (reader.offset < payloadend) {

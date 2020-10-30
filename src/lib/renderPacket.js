@@ -188,9 +188,9 @@ export default function renderPacket(packet) {
                                 rendered += detail("Reason: " + disconnect_reasons[payload.reason]);
                                 rendered += detail("Message:" + string(messages[payload.reason] || payload.message || "None."));
                             } else {
-                                rendered += detail("Code:" + Int2Code(payload.code));
+                                rendered += detail("Code: " + Int2Code(payload.code));
                                 rendered += detail("Client ID: " + payload.clientid);
-                                rendered += detail("Host ID: " + payload.clientid);
+                                rendered += detail("Host ID: " + payload.hostid);
                             }
                         } else if (packet.bound === "server") {
                             rendered += detail("Code: " + Int2Code(payload.code));

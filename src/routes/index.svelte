@@ -49,8 +49,13 @@
     function deletePacket(i) {
         workspace.packets.splice(i, 1);
         workspace.packets = workspace.packets;
-        
-        workspace.save();
+
+        if (workspace.packets.length === 0) {
+            workspace.packets.push(new WorkspacePacket(workspace, {
+                data: [],
+                serverbound: false
+            }));
+        }
 
         if (selectedPacket >= workspace.packets.length) {
             selectedPacket--;
