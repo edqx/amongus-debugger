@@ -414,8 +414,8 @@ export default function parsePacket(buffer, bound) {
                                     part.netid = reader.packed();
                                     break;
                                 case 0x06: // Scene change
-                                    //reader.expect(0x01, "client ID");
-                                    //part.clientid = reader.packed();
+                                    reader.expect(0x01, "client ID");
+                                    part.clientid = reader.packed();
                                     reader.expect(0x01, "location");
                                     part.location = reader.string();
                                     break;

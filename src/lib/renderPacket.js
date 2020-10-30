@@ -426,6 +426,7 @@ export default function renderPacket(packet) {
                                     rendered += detail("Net ID: " + part.netid);
                                     break;
                                 case 0x06:
+                                    rendered += detail("Client ID: " + part.clientid);
                                     rendered += detail("Location: " + part.location);
                                     break;
                                 case 0x07:
