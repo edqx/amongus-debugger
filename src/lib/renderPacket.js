@@ -222,7 +222,7 @@ export default function renderPacket(packet) {
                         break;
                     case 0x05:
                     case 0x06:
-                        if (packet.bound === "client") {
+                        if (packet.bound === "client" || payload.code) {
                             rendered += detail("Code: " + Int2Code(payload.code));
                         }
 
