@@ -1,4 +1,6 @@
 <script>
+    import { onMount, onDestroy } from "svelte"
+
     import toBuffer from "../lib/toBuffer.js"
     import parsePacket from "../lib/parsePacket.js"
     import renderPacket from "../lib/renderPacket.js"
@@ -24,6 +26,30 @@
 
         localStorage.setItem("selected", selectedPacket);
     }
+
+    function onKey(ev) {
+        if (document.activeElement.tagName === "BODY") {
+            if (ev.key === "ArrowDown") {
+                selectedPacket++;
+                if (selectedPacket >= workspace.packets.length) {
+                    selectedPacket = workspace.packets.length - 1;
+                }
+            } else if (ev.key === "ArrowUp") {
+                selectedPacket--;
+                if (selectedPacket < 0) {
+                    selectedPacket = 0;
+                }
+            }
+        }
+    }
+
+    onMount(function () {
+        document.addEventListener("keydown", onKey);
+    });
+
+    onDestroy(function () {
+        document.removeEventListener("keydown", onKey);
+    });
 
     function updatePacket() {
         packet.name = packetname;

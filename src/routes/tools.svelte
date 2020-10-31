@@ -2,6 +2,7 @@
     import { Int2Code, Code2Int } from "../lib/util/GameCodes.js"
     import { EncodeVersion, DecodeVersion } from "../lib/util/Versions.js"
     import { Buffer } from "buffer/"
+
     import BufferReader from "../lib/util/BufferReader.js"
 
     import toBuffer from "../lib/toBuffer.js"
@@ -103,7 +104,7 @@
     let packedint = 0;
     let packedbytes = "";
 
-    $: packedint = (packedint || "").toString().replace(/[^0-9]/g, "");
+    $: packedint = (packedint || "").toString().replace(/[^\-0-9]/g, "");
     $: packedbytes = (packedbytes.replace(/[^a-fA-f0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ").toUpperCase();
 
     function setPackedIntBytes() {

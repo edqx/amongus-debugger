@@ -18,6 +18,7 @@ import skins from "./constants/skins.js"
 import notetypes from "./constants/notetypes.js"
 import systemtypes from "./constants/systemtypes.js"
 import gamelist_tags from "./constants/gamelist_tags.js"
+import languages from "./constants/languages.js"
 
 import { Int2Code } from "./util/GameCodes.js"
 import { DecodeVersion } from "./util/Versions.js"
@@ -103,7 +104,7 @@ function renderGameOptions(options) {
     rendered += detail("Length: " + options.length);
     rendered += detail("Version: v" + options.version);
     rendered += detail("Max players: " + options.maxPlayers);
-    rendered += detail("Language: " + options.language);
+    rendered += detail("Language: " + options.language + " (" + (languages[options.language] || "Unknown.") + ")");
     rendered += detail("Map ID: " + options.mapID);
     rendered += detail("Player speed: " + options.playerSpeed);
     rendered += detail("Crewmate vision: " + options.crewVision);

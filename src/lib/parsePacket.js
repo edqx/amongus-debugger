@@ -123,7 +123,7 @@ export default function parsePacket(buffer, bound) {
                                     payload.reason = reader.uint8();
         
                                     if (payload.reason === 0x08 && reader.offset < payloadend) {
-                                        payload.message = reader.string();
+                                        payload.message = reader.string(payloadend - reader.offset);
                                     }
                                 }
                             } else {
