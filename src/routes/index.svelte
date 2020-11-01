@@ -125,7 +125,7 @@
 
 <span class="title">Among Us Debugger</span>
 <span>Understand Among Us conversation packets, find errors and squish bugs.</span>
-<span>Work in progress. Bugs are likely, if you encounter any issues, please file an issue through the repo on github.</span>
+<span>If you encounter any issues, please file an issue through the repo on github.</span>
 <span>Made by <a href="https://github.com/edqx/amongus-debugger">weakeyes</a>.</span>
 <br><br>
 <div class="center-wrapper">
