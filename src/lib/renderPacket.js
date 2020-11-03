@@ -366,6 +366,7 @@ export default function renderPacket(packet) {
                                                 rendered += detail((i + 1) + ". " + task);
                                                 untab();
                                             }
+                                            break;
                                         case 0x1e:
                                             rendered += detail("Players: (" + part.players.length + ")");
                                             for (let i = 0; i < part.players.length; i++) {

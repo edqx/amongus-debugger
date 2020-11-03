@@ -4,7 +4,6 @@
     import toBuffer from "../lib/toBuffer.js"
     import parsePacket from "../lib/parsePacket.js"
     import renderPacket from "../lib/renderPacket.js"
-
     import { Packet as WorkspacePacket, getWorkspace } from "../lib/Workspace.js"
 
     import Packet from "../components/Packet.svelte"
@@ -134,7 +133,7 @@
         <textarea class="packet-input" bind:value={packetinput} on:change={updatePacket} spellcheck="false" placeholder="Packet data"></textarea>
         <div style="margin-top: 4px;">
             <input bind:checked={serverbound} on:change={updatePacket} id="serverbound" type="checkbox"/>Server bound?
-            <button style="float:right;" on:click={() => deletePacket(selectedPacket)}>Delete</button>
+            <button style="float:right;" class="not-good" on:click={() => deletePacket(selectedPacket)}>Delete</button>
         </div>
         <div class="parsed-packet">
             {#if rendered || error}

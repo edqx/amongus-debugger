@@ -29,7 +29,6 @@ body {
 }
 
 button {
-    background-color:  #d0271a;
     outline: none;
     border: none;
     border-radius: 2px;
@@ -38,6 +37,22 @@ button {
     padding-right: 8px;
     color: #cccecc;
     cursor: pointer;
+}
+
+button.not-good {
+    background-color:  #d0271a;
+}
+
+button.good {
+    background-color: #1974c4;
+}
+
+button.not-good:hover {
+    background-color: #aa1e14;
+}
+
+button.good:hover {
+    background-color: #115087;
 }
 
 input {
@@ -58,10 +73,6 @@ a {
 
 a:hover {
     text-decoration: underline;
-}
-
-button:hover {
-    background-color: #aa1e14;
 }
 
 .title {
