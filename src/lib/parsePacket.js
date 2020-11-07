@@ -6,7 +6,7 @@ import { LerpValue } from "./util/Lerp.js"
 
 import * as e from "./constants/enums.js"
 
-function readGameOptions(reader) {
+function readGameOptions(reader, search) {
     const length = reader.packed("Length", "The length of the game options.");
     const start = reader.offset;
 
@@ -25,7 +25,27 @@ function readGameOptions(reader) {
     options.value.version = reader.byte("Version", "The version of the game options. (2, 3, 4)");
     options.value.max_players = reader.uint8("Max players", "The maximum players allowed in the game.");
     options.value.language = reader.uint32LE("Language", "The language of the chat in the game.");
-    options.value.mapID = reader.uint8("Map ID", "The map of the game.", e.map_ids);
+    if (search) {
+        options.value.mapID = reader.uint8("Map ID", "The map of the game.", e.map_ids);
+    } else {
+        options.value.maps = reader.bitfield("Map bitfield", "The maps to search for.", function (bitfield) {
+            const maps = [];
+            
+            if (bitfield & 0x01) {
+                maps.push("The Skeld");
+            }
+
+            if (bitfield & 0x02) {
+                maps.push("Mira HQ");
+            }
+
+            if (bitfield & 0x04) {
+                maps.push("Polus");
+            }
+
+            return maps.join(", ");
+        });
+    }
     options.value.playerSpeed = reader.floatLE("Player speed", "The speed multiplier for crewmates and imposters.");
     options.value.crewmateVision = reader.floatLE("Crewmate vision", "The vision multiplier for crewmates.");
     options.value.imposterVision = reader.floatLE("Imposter vision", "The vision multiplier for imposters.");
@@ -573,64 +593,68 @@ export default function parsePacket(buffer, bound) {
                         }
                         break;
                     case 0x10:
-                        const message_length = payload_reader.uint16LE("Message length", "The length of the game list payload.");
-                        const message_tag = payload_reader.uint8("Message tag", "The tag for the game list payload.", ["game list", "game count"]);
-                        const message_reader = payload_reader.slice(payload_reader.offset, message_length.value);
+                        if (packet.bound === "server") {
+                            payload.options = readGameOptions(payload_reader, true);
+                        } else if (packet.bound === "client") {
+                            const message_length = payload_reader.uint16LE("Message length", "The length of the game list payload.");
+                            const message_tag = payload_reader.uint8("Message tag", "The tag for the game list payload.", ["game list", "game count"]);
+                            const message_reader = payload_reader.slice(payload_reader.offset, message_length.value);
 
-                        switch (message_tag.value) {
-                            case 0x00:
-                                payload.games = {
-                                    name: "Games",
-                                    description: "The games in the game list.",
-                                    value: [],
-                                    edianness: null,
-                                    startpos: message_reader.offset,
-                                    size: message_reader.buffer.byteLength - 2,
-                                    slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
-                                    warnings: []
-                                }
+                            switch (message_tag.value) {
+                                case 0x00:
+                                    payload.games = {
+                                        name: "Games",
+                                        description: "The games in the game list.",
+                                        value: [],
+                                        edianness: null,
+                                        startpos: message_reader.offset,
+                                        size: message_reader.buffer.byteLength - 2,
+                                        slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
+                                        warnings: []
+                                    }
 
-                                while (message_reader.left) {
-                                    const game = {};
+                                    while (message_reader.left) {
+                                        const game = {};
 
-                                    game.length = message_reader.uint16LE("Game length", "The length of the game listing.");
-                                    message_reader.jump(0x01);
+                                        game.length = message_reader.uint16LE("Game length", "The length of the game listing.");
+                                        message_reader.jump(0x01);
 
-                                    const game_reader = message_reader.slice(message_reader.offset, game.length.value);
+                                        const game_reader = message_reader.slice(message_reader.offset, game.length.value);
 
-                                    game.ipaddr = game_reader.bytes(4, "IP address", "The IP address of the game datacenter.");
-                                    game.ipaddr.value = game.ipaddr.value.join(".");
-                                    game.port = game_reader.uint16LE("Port", "The port of the game datacenter.");
-                                    game.code = game_reader.int32LE("Game code", "The 6 digit game code for the game.", Int2Code);
-                                    game.name = game_reader.string("Name", "The name of the game, i.e. The host's name.");
-                                    game.num_players = game_reader.packed("Number of players", "The number of players in the game currently.");
-                                    game.age = game_reader.packed("Age", "The age of the game in seconds since its creation.");
-                                    game.mapID = game_reader.uint8("Map ID", "The map ID for the game.", e.map_ids);
-                                    game.num_imposters = game_reader.uint8("Number of imposters", "The number of imposters in the game.");
-                                    game.max_players = game_reader.uint8("Max players", "The maximum number of players allowed to join the game.");
+                                        game.ipaddr = game_reader.bytes(4, "IP address", "The IP address of the game datacenter.");
+                                        game.ipaddr.value = game.ipaddr.value.join(".");
+                                        game.port = game_reader.uint16LE("Port", "The port of the game datacenter.");
+                                        game.code = game_reader.int32LE("Game code", "The 6 digit game code for the game.", Int2Code);
+                                        game.name = game_reader.string("Name", "The name of the game, i.e. The host's name.");
+                                        game.num_players = game_reader.packed("Number of players", "The number of players in the game currently.");
+                                        game.age = game_reader.packed("Age", "The age of the game in seconds since its creation.");
+                                        game.mapID = game_reader.uint8("Map ID", "The map ID for the game.", e.map_ids);
+                                        game.num_imposters = game_reader.uint8("Number of imposters", "The number of imposters in the game.");
+                                        game.max_players = game_reader.uint8("Max players", "The maximum number of players allowed to join the game.");
 
-                                    payload.games.value.push(game);
-                                    message_reader.goto(game_reader.end - message_reader.base);
-                                }
-                                break;
-                            case 0x01:
-                                payload.count = {
-                                    name: "Count",
-                                    description: "The total number of games for each map.",
-                                    value: {},
-                                    edianness: null,
-                                    startpos: message_reader.offset,
-                                    size: message_reader.buffer.byteLength - 2,
-                                    slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
-                                    warnings: []
-                                }
+                                        payload.games.value.push(game);
+                                        message_reader.goto(game_reader.end - message_reader.base);
+                                    }
+                                    break;
+                                case 0x01:
+                                    payload.count = {
+                                        name: "Count",
+                                        description: "The total number of games for each map.",
+                                        value: {},
+                                        edianness: null,
+                                        startpos: message_reader.offset,
+                                        size: message_reader.buffer.byteLength - 2,
+                                        slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
+                                        warnings: []
+                                    }
 
-                                payload.count.value.the_skeld = message_reader.uint32LE("The Skeld", "The total number of games on The Skeld.");
-                                payload.count.value.mira_hq = message_reader.uint32LE("Mira HQ", "The total number of games on Mira HQ.");
-                                payload.count.value.polus = message_reader.uint32LE("Polus", "The total number of games on Polus.");
-                                break;
+                                    payload.count.value.the_skeld = message_reader.uint32LE("The Skeld", "The total number of games on The Skeld.");
+                                    payload.count.value.mira_hq = message_reader.uint32LE("Mira HQ", "The total number of games on Mira HQ.");
+                                    payload.count.value.polus = message_reader.uint32LE("Polus", "The total number of games on Polus.");
+                                    break;
+                            }
+                            break;
                         }
-                        break;
                 }
 
                 packet_reader.jump(payload_reader.end);
