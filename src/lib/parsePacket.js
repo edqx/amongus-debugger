@@ -78,7 +78,7 @@ function readGameOptions(reader, search) {
     }
 
     if (length !== reader.offset - start) {
-        options.value.length.warnings.push("Expected " + (reader.offset - start) + ", got " + length + ".");
+        options.value.length.warnings.push("Expected " + (reader.offset - start) + ", got " + length.value + ".");
     }
 
     return options;
