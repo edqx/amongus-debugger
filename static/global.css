@@ -79,30 +79,6 @@ a:hover {
     font-size: 24pt;
 }
 
-.error {
-    color: #f1483b;
-}
-
-.warning {
-    color: #fbcd2d;
-}
-
-.important {
-    color: #1974c4;
-}
-
-.detail {
-    color: #6cc6de;
-}
-
-.string {
-    color: #f34d6e;
-}
-
-.comment {
-    color: #777777;
-}
-
 @media (max-width: 400px) {
     .wrapper {
         margin-left: 10%;

@@ -2,7 +2,7 @@
     import { Buffer } from "buffer/"
     import parsePacket from "../lib/parsePacket.js"
 
-    import opcodes from "../lib/constants/opcodes.js"
+    import { opcodes } from "../lib/constants/enums.js"
 
     import { createEventDispatcher } from "svelte"
 

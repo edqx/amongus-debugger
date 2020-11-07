@@ -1,632 +1,666 @@
-import BufferReader from "./util/BufferReader.js"
+import PacketReader from "./util/PacketReader.js"
 
+import { FormatVersion } from "./util/Versions.js"
+import { Int2Code } from "./util/GameCodes.js"
 import { LerpValue } from "./util/Lerp.js"
 
-export default function parsePacket(buffer, bound) {
-    const reader = new BufferReader(buffer);
+import * as e from "./constants/enums.js"
 
-    const packet = {};
-    packet.warnings = [];
+function readGameOptions(reader) {
+    const length = reader.packed("Length", "The length of the game options.");
+    const start = reader.offset;
 
-    
-    function parseGameOptions() {
-        let options = {};
-
-        const lenpos = reader.offset;
-        reader.expect(0x01, "game options length");
-        options.length = reader.packed();
-        const start = reader.offset;
-        reader.expect(0x01, "version");
-        options.version = reader.byte();
-        reader.expect(0x01, "max players");
-        options.maxPlayers = reader.uint8();
-        reader.expect(0x04, "language");
-        options.language = reader.uint32LE();
-        reader.expect(0x01, "map ID");
-        options.mapID = reader.byte();
-        reader.expect(0x04, "player speed");
-        options.playerSpeed = reader.floatLE();
-        reader.expect(0x04, "crew vision");
-        options.crewVision = reader.floatLE();
-        reader.expect(0x04, "imposter vision");
-        options.imposterVision = reader.floatLE();
-        reader.expect(0x04, "kill cooldown");
-        options.killCooldown = reader.floatLE();
-        reader.expect(0x01, "common tasks");
-        options.commonTasks = reader.uint8();
-        reader.expect(0x01, "long tasks");
-        options.longTasks = reader.uint8();
-        reader.expect(0x01, "short tasks");
-        options.shortTasks = reader.uint8();
-        reader.expect(0x01, "emergencies");
-        options.emergencies = reader.int32LE();
-        reader.expect(0x01, "imposter count");
-        options.imposterCount = reader.uint8();
-        reader.expect(0x01, "kill distance");
-        options.killDistance = reader.byte();
-        reader.expect(0x04, "discussion time");
-        options.discussionTime = reader.int32LE();
-        reader.expect(0x04, "voting time");
-        options.votingTime = reader.int32LE();
-        reader.expect(0x01, "is default");
-        options.isDefault = reader.bool();
-
-        if (options.version >= 1 && reader.offset < reader.size) {
-            reader.expect(0x01, "emergency cooldown");
-            options.emergencyCooldown = reader.uint8();
-        }
-
-        if (options.version >= 2 && reader.offset < reader.size - 1) {
-            reader.expect(0x01, "confirm ejects");
-            options.confirmEjects = reader.bool();
-            reader.expect(0x01, "visual tasks");
-            options.visualTasks = reader.bool();
-        }
-
-        /*if (options.version >= 3 && reader.offset < reader.size - 1) {
-            reader.expect(0x01, "anonymous voting");
-            options.anonymousVoting = reader.bool();
-            reader.expect(0x01, "task bar updates");
-            options.taskBarUpdates = reader.uint8();
-        }*/
-
-        if (reader.offset - start !== options.length) {
-            packet.warnings.push("Invalid length of game options at byte " + lenpos + ", expected " + (reader.offset - start) + ", got " + options.length + ".");
-        }
-
-        return options;
+    const options = {
+        name: "Game options",
+        description: "The game settings for creation, syncing or searching.",
+        value: {},
+        edianness: null,
+        startpos: reader.offset,
+        size: length.value,
+        slice: reader.slice(reader.offset, length.value).buffer,
+        warnings: []
     }
 
-    reader.expect(0x01, "opcode");
-    packet.opcode = reader.uint8();
+    options.value.length = length;
+    options.value.version = reader.byte("Version", "The version of the game options. (2, 3, 4)");
+    options.value.max_players = reader.uint8("Max players", "The maximum players allowed in the game.");
+    options.value.language = reader.uint32LE("Language", "The language of the chat in the game.");
+    options.value.mapID = reader.uint8("Map ID", "The map of the game.", e.map_ids);
+    options.value.playerSpeed = reader.floatLE("Player speed", "The speed multiplier for crewmates and imposters.");
+    options.value.crewmateVision = reader.floatLE("Crewmate vision", "The vision multiplier for crewmates.");
+    options.value.imposterVision = reader.floatLE("Imposter vision", "The vision multiplier for imposters.");
+    options.value.killCooldown = reader.floatLE("Kill cooldown", "The cooldown required to wait between each kill for imposters.");
+    options.value.commonTasks = reader.uint8("Common tasks", "The number of common tasks.");
+    options.value.longTasks = reader.uint8("Long tasks", "The number of long tasks.");
+    options.value.shortTasks = reader.uint8("Short tasks", "The number of short tasks.");
+    options.value.emergencies = reader.int32LE("Emergencies", "The number of emergencies allowed for every player.");
+    options.value.imposterCount = reader.uint8("Imposters", "The number of the imposters in the game.");
+    options.value.killDistance = reader.byte("Kill distance", "The maximum distance for each kill.", e.distances);
+    options.value.discussionTime = reader.int32LE("Discussion time", "The time allocated for discussion before voting, in seconds.");
+    options.value.votingTime = reader.int32LE("Voting time", "The time allocated for voting, in seconds.");
+    options.value.isDefault = reader.bool("Is default?", "Whether or not the game options are the preset recommended settings.");
 
+    if (options.value.version.value >= 2) {
+        options.emergencyCooldown = reader.uint8("Emergency cooldown", "The time required to wait between each emergency cooldown.");
+    }
+
+
+    if (options.value.version.value >= 3) {
+        options.confirmEjects = reader.bool("Confirm ejects", "Whether or not ejects are confirmed, saying whether or not the voted out person was the imposter.");
+        options.visualTasks = reader.bool("Visual tasks", "Whether or not tasks have a visual identifier if applicable, e.g. Medbay");
+    }
+
+    if (options.value.version.value >= 4) {
+        options.anonymousVoting = reader.bool("Anonymous voting", "Whether or not votes during meetings are anonymous.");
+        options.taskBarUpdates = reader.bool("When the task bar should update, after a task, after meetings or never.", e.task_bar_updates);
+    }
+
+    if (length !== reader.offset - start) {
+        options.value.length.warnings.push("Expected " + (reader.offset - start) + ", got " + length + ".");
+    }
+
+    return options;
+}
+
+export default function parsePacket(buffer, bound) {
+    const packet_reader = new PacketReader(buffer);
+
+    const packet = {};
     packet.bound = bound;
+    packet.op = packet_reader.uint8("Opcode", "The opcode for the packet.", e.opcodes);
 
-    switch (packet.opcode) {
-        case 0x00: // Unreliable
-        case 0x01: // Reliable
-            packet.reliable = packet.opcode === 0x01;
-        
-            if (packet.reliable) {
-                reader.expect(0x02, "nonce");
-                packet.nonce = reader.uint16BE();
+    switch (packet.op.value) {
+        case 0x01:
+            packet.reliable = true;
+            packet.nonce = packet_reader.uint16BE("Nonce", "The acknowledgement identifier for the packet.");
+        case 0x00:
+            packet.payloads = {
+                name: "Payloads",
+                description: "The payloads in the packet.",
+                value: [],
+                edianness: null,
+                startpos: packet_reader.offset,
+                size: packet_reader.buffer.byteLength - 2,
+                slice: packet_reader.slice(packet_reader.offset).buffer,
+                warnings: []
             }
 
-            packet.payloads = [];
+            packet.payloads.name = "Payloads";
 
-            while (reader.offset < reader.size) {
+            while (packet_reader.left) {
                 const payload = {};
+                const payload_length = packet_reader.uint16LE("Payload length", "The length of the payload.");
+                payload.tag = packet_reader.uint8("Payload tag", "The payload tag.", e.tags);
+                const payload_reader = packet_reader.slice(packet_reader.offset, payload_length.value);
 
-                reader.expect(0x02, "payload length");
-                payload.length = reader.uint16LE();
-                reader.expect(0x01, "payload tag");
-                payload.tag = reader.uint8();
-
-                const payloadend = reader.offset + payload.length - 1;
-
-                switch (payload.tag) {
-                    case 0x00: // Host game
-                        if (packet.bound === "client") {
-                            reader.expect(0x04, "game code");
-                            payload.code = reader.int32LE();
-                        } else if (packet.bound === "server") {
-                            payload.options = parseGameOptions();
+                switch (payload.tag.value) {
+                    case 0x00:
+                        if (payload.bound === "client") {
+                            payload.code = payload_reader.int32LE("Game code", "The code for the newly created game.");
+                        } else {
+                            payload.options = readGameOptions(payload_reader);
                         }
                         break;
-                    case 0x01: // Join game
-                        if (packet.bound === "client") {
-                            payload.error = payload.length !== 12;
-    
-                            if (payload.error) {
-                                if (reader.offset < payloadend) {
-                                    reader.expect(0x01, "reason");
-                                    payload.reason = reader.uint8();
-        
-                                    if (payload.reason === 0x08 && reader.offset < payloadend) {
-                                        payload.message = reader.string(payloadend - reader.offset);
-                                    }
-                                }
+                    case 0x01:
+                        if (payload.bound === "client") {
+                            if (payload_reader.left > 4) {
+                                payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", Int2Code);
+                                payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
+                                payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the host of the game.");
                             } else {
-                                reader.expect(0x04, "game code");
-                                payload.code = reader.int32LE();
-                                reader.expect(0x04, "client ID");
-                                payload.clientid = reader.uint32LE();
-                                reader.expect(0x04, "host ID");
-                                payload.hostid = reader.uint32LE();
+                                payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.");
                             }
-                        } else if (packet.bound === "server") {
-                            reader.expect(0x04, "game code");
-                            payload.code = reader.int32LE();
-                            reader.expect(0x01, "map ownership");
-                            payload.mapOwnership = reader.byte();
+                        } else {
+                            payload.code = payload_reader.int32LE("Game code", "The code of the game to join.");
+                            payload.mapOwnership = payload_reader.bitfield("Map ownership", "A bitfield of all maps owned by the client, 0x07 for all maps.", function (bitfield) {
+                                const maps = [];
+                                
+                                if (bitfield & 0x01) {
+                                    maps.push("The Skeld");
+                                }
+
+                                if (bitfield & 0x02) {
+                                    maps.push("Mira HQ");
+                                }
+
+                                if (bitfield & 0x04) {
+                                    maps.push("Polus");
+                                }
+
+                                return maps.join(", ");
+                            });
                         }
                         break;
-                    case 0x02: // Start game
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
+                    case 0x02:
+                        payload.code = payload_reader.int32LE("Payload code", "The code for the game started.", Int2Code);
                         break;
-                    case 0x03: // Remove game
+                    case 0x03:
                         break;
-                    case 0x04: // Remove player
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
-                        reader.expect(0x04, "client ID");
-                        payload.clientid = reader.uint32LE();
-                        reader.expect(0x04, "host ID");
-                        payload.hostid = reader.uint32LE();
-    
-                        if (reader.left) {
-                            reader.expect(0x01, "reason");
-                            payload.reason = reader.uint8();
-            
+                    case 0x04:
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game that the player was removed from.", Int2Code);
+                        payload.clientid = payload_reader.uint32LE("Client ID", "The ID of the client that was removed.");
+                        payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the existing or new host of the game.");
+                        if (payload_reader.left) {
+                            payload.reason = payload_reader.uint8("Remove reason", "The reason for why the player was removed.", e.disconnect_reasons);
+                            
                             if (payload.reason === 0x08) {
-                                reader.expect(0x01, "message")
-                                payload.message = reader.string();
+                                payload.message = payload_reader.string("Remove reason", "The reason for why the player was removed.", e.disconnect_reasons);
                             }
                         }
                         break;
-                    case 0x05: // Game data
-                    case 0x06: // Game data to
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
-    
-                        if (payload.tag === 0x06) {
-                            reader.expect(0x01, "recipient");
-                            payload.recipient = reader.packed();
+                    case 0x05:
+                    case 0x06:
+                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the game data is for.", Int2Code);
+
+                        if (payload.tag.value === 0x06) {
+                            payload.recipientid = payload_reader.packed("Recipient ID", "The client ID of the recipient of the packet.");
                         }
 
-                        payload.parts = [];
-    
-                        while (reader.offset < payloadend) {
-                            const part = {};
-                            reader.expect(0x02, "length");
-                            part.length = reader.uint16LE();
-                            reader.expect(0x01, "message type");
-                            part.type = reader.uint8();
-                            const partend = reader.offset + part.length;
-    
-                            switch (part.type) {
-                                case 0x01: // Data
-                                    reader.expect(0x01, "net ID");
-                                    part.netid = reader.packed();
-                                    part.datalen = partend - reader.offset;
-                                    reader.expect(part.datalen, "deserialise data");
-                                    part.data = reader.buffer.slice(reader.offset, partend);
-                                    reader.jump(part.datalen);
+                        payload.messages = {
+                            name: "Messages",
+                            description: "The messages in the game data.",
+                            value: [],
+                            edianness: null,
+                            startpos: payload_reader.offset,
+                            size: payload_reader.left,
+                            slice: payload_reader.slice(payload_reader.offset).buffer,
+                            warnings: []
+                        }
+
+                        while (payload_reader.left) {
+                            const message = {};
+                            const message_length = payload_reader.uint16LE("Length", "The length of the message.");
+                            message.messageType = payload_reader.uint8("Message type", "The type of the game data message.", e.message_types);
+                            const message_reader = payload_reader.slice(payload_reader.offset, message_length.value);
+
+                            switch (message.messageType.value) {
+                                case 0x01:
+                                    message.netid = message_reader.packed("Net ID", "The component net ID to send the data to for deserialization.");
+                                    const data_length = message_reader.left;
+                                    message.data = message_reader.bytes(data_length, "Data", "The data for the component.");
+                                    message.data.value = message.data.value.map(function (bytes) {
+                                        return bytes.map(byte => ToHex(byte, null, packet_value.endianness === "big")).join(" ");
+                                    });
                                     break;
-                                case 0x02: // RPC
-                                    reader.expect(0x01, "handler ID");
-                                    part.handlerid = reader.packed();
-                                    reader.expect(0x01, "rpc ID");
-                                    part.rpcid = reader.uint8();
-    
-                                    switch (part.rpcid) {
-                                        case 0x00: // Play animation
-                                            reader.expect(0x01, "animation ID");
-                                            part.animation = reader.byte();
+                                case 0x02:
+                                    message.handlerid = message_reader.packed("Handler ID", "The net ID of the component responsible for sending the game data.");
+                                    message.rpcid = message_reader.uint8("RPC ID", "The remote procedure call ID.", e.rpc_ids);
+
+                                    switch (message.rpcid.value) {
+                                        case 0x00:
+                                            message.anim_type = message_reader.uint8("Animation Type", "The type of animation to play.");
                                             break;
-                                        case 0x01: // Complete task
-                                            reader.expect(0x01, "task ID");
-                                            part.taskid = reader.byte();
+                                        case 0x01:
+                                            message.taskid = message_reader.uint8("Task ID", "The ID of the task that was completed.");
                                             break;
-                                        case 0x02: // Sync settings
-                                            part.options = parseGameOptions(reader);
+                                        case 0x02:
+                                            message.options = readGameOptions(message_reader);
                                             break;
-                                        case 0x03: // Set infected
-                                            reader.expect(0x01, "imposter count");
-                                            part.count = reader.packed();
-                                            reader.expect(part.count, "imposters");
-                                            part.infected = reader.bytes(part.count);
+                                        case 0x03:
+                                            const num_infected = message_reader.packed("Number of imposters", "The number of imposters that are being set.");
+                                            message.infected = {
+                                                name: "Imposters",
+                                                description: "The imposters that were set.",
+                                                value: [],
+                                                edianness: null,
+                                                startpos: message_reader.offset,
+                                                size: num_infected,
+                                                slice: message_reader.slice(message_reader.offset, num_infected).buffer,
+                                                warnings: []
+                                            }
+
+                                            for (let i = 0; i < num_infected; i++) {
+                                                const playerid = payload_reader.uint8("Player ID", "A player ID of a selected imposter.");
+                    
+                                                message.infected.value.push({ playerid });
+                                            }
                                             break;
-                                        case 0x04: // Exiled
+                                        case 0x04:
                                             break;
-                                        case 0x05: // Check name
-                                            reader.expect(0x01, "name");
-                                            part.name = reader.string();
+                                        case 0x05:
+                                            message.name = message_reader.string("Name", "The name to check.");
                                             break;
-                                        case 0x06: // Set name
-                                            reader.expect(0x01, "name");
-                                            part.name = reader.string();
+                                        case 0x06:
+                                            message.name = message_reader.string("Name", "The name to set.");
                                             break;
-                                        case 0x07: // Check name
-                                            reader.expect(0x01, "colour ID");
-                                            part.colour = reader.uint8();
+                                        case 0x07:
+                                            message.colour = message_reader.uint8("Colour", "The colour to check.", e.colour_ids);
                                             break;
-                                        case 0x08: // Set name
-                                            reader.expect(0x01, "colour ID");
-                                            part.colour = reader.uint8();
+                                        case 0x08:
+                                            message.colour = message_reader.uint8("Colour", "The colour to set.", e.colour_ids);
                                             break;
-                                        case 0x09: // Set hat
-                                            reader.expect(0x01, "hat ID");
-                                            part.hat = reader.uint8();
+                                        case 0x09:
+                                            message.hat = message_reader.uint8("Hat", "The hat to set.", e.hat_ids);
                                             break;
-                                        case 0x0a: // Set skin
-                                            reader.expect(0x01, "skin ID");
-                                            part.skin = reader.uint8();
+                                        case 0x0a:
+                                            message.skin = message_reader.uint8("Skin", "The skin to set.", e.skin_ids);
                                             break;
-                                        case 0x0b: // Report dead body
-                                            reader.expect(0x01, "dead body ID");
-                                            part.targetid = reader.uint8();
+                                        case 0x0b:
+                                            message.targetid = message_reader.uint8("Target ID", "The player ID of the player reported.", val => val === 0xFF ? "Emergency meeting" : "");
                                             break;
-                                        case 0x0c: // Murder player
-                                            reader.expect(0x01, "target net ID");
-                                            part.targetnetid = reader.packed();
+                                        case 0x0c:
+                                            message.netid = message_reader.uint8("Net ID", "The victim's player control net ID.");
                                             break;
-                                        case 0x0d: // Send chat
-                                            reader.expect(0x01, "text");
-                                            part.text = reader.string();
+                                        case 0x0d:
+                                            message.text = message_reader.string("Text", "The chat text.");
                                             break;
-                                        case 0x0e: // Start meeting
-                                            reader.expect(0x01, "target ID");
-                                            part.targetid = reader.uint8();
+                                        case 0x0e:
+                                            message.targetid = message_reader.uint8("Target ID", "The player ID of the player reported.", val => val === 0xFF ? "Emergency meeting" : "");
                                             break;
-                                        case 0x0f: // Set scanner
-                                            reader.expect(0x01, "scanning?");
-                                            part.scanning = reader.bool();
-                                            reader.expect(0x01, "count");
-                                            part.count = reader.uint8();
+                                        case 0x0f:
+                                            message.scanning = message_reader.bool("Scanning", "Whether or not the scanner is active.");
+                                            message.num_scanning = message_reader.uint8("Scanner count");
                                             break;
-                                        case 0x10: // Send chat note
-                                            reader.expect(0x01, "player ID");
-                                            part.playerid = reader.uint8();
-                                            reader.expect(0x01, "note type");
-                                            part.notetype = reader.uint8();
+                                        case 0x10:
+                                            message.player_id = message_reader.uint8("Player ID", "The player that sent the chat note.");
+                                            message.chat_note_type = message_reader.uint8("Chat note type", "The type of chat note, currently there's only 0 for vote.", e.note_types);
                                             break;
-                                        case 0x11: // Set pet
-                                            reader.expect(0x01, "pet ID");
-                                            part.pet = reader.uint8();
+                                        case 0x11:
+                                            message.pet = message_reader.uint8("Pet", "The pet to set.", e.pet_ids);
                                             break;
-                                        case 0x12: // Set start counter
-                                            reader.expect(0x01, "sequence");
-                                            part.sequence = reader.packed();
-                                            reader.expect(0x01, "time");
-                                            part.time = reader.int8();
+                                        case 0x12:
+                                            message.sequence = message_reader.packed("Sequence number", "The sequence number used for keeping the order of packets that can rely on which packets were sent first.");
                                             break;
-                                        case 0x13: // Enter vent
-                                            reader.expect(0x01, "sequence");
-                                            part.sequence = reader.packed();
-                                            reader.expect(0x01, "vent ID");
-                                            part.ventid = reader.packed();
+                                        case 0x13:
+                                            message.ventid = message_reader.packed("Vent ID", "The ID of the vent that was entered.");
                                             break;
-                                        case 0x14: // Exit vent
-                                            reader.expect(0x01, "vent ID");
-                                            part.ventid = reader.packed();
+                                        case 0x14:
+                                            message.ventid = message_reader.packed("Vent ID", "The ID of the vent that was exited.");
                                             break;
-                                        case 0x15: // Snap to
-                                            reader.expect(0x02, "x position");
-                                            part.x = LerpValue(reader.uint16LE() / 65535, -40, 40);
-                                            reader.expect(0x02, "y position");
-                                            part.y = LerpValue(reader.uint16LE() / 65535, -40, 40);
+                                        case 0x15:
+                                            message.x = message_reader.int16LE("X position", "The X position to snap to, divided by 65535 and linearly lerped between -40 and 40.");
+                                            message.x.value = LerpValue(message.x.value / 65535, -40, 40);
+                                            message.y = message_reader.int16LE("Y position", "The Y position to snap to, divided by 65535 and linearly lerped between -40 and 40.");
+                                            message.y.value = LerpValue(message.y.value / 65535, -40, 40);
                                             break;
-                                        case 0x16: // Close
+                                        case 0x16:
                                             break;
-                                        case 0x17: // Voting complete
-                                            reader.expect(0x01, "number of states");
-                                            part.num_states = reader.packed();
-                                            reader.expect(part.num_states, "states");
-                                            part.states = reader.bytes(part.num_states);
-                                            reader.expect(0x01, "exiled ID");
-                                            part.exiled = reader.uint8();
-                                            reader.expect(0x01, "tie?");
-                                            part.tie = reader.bool();
-                                            break;
-                                        case 0x18: // Cast vote
-                                            reader.expect(0x01, "voter ID");
-                                            part.voterid = reader.uint8();
-                                            reader.expect(0x01, "suspect ID");
-                                            part.suspectid = reader.uint8();
-                                            break;
-                                        case 0x19: // Clear vote
-                                            break;
-                                        case 0x1a: // Add vote
-                                            reader.expect(0x01, "player ID");
-                                            part.playerid = reader.uint8();
-                                            break;
-                                        case 0x1b: // Close doors of type
-                                            reader.expect(0x01, "system type");
-                                            part.systemtype = reader.uint8();
-                                            break;
-                                        case 0x1c: // Repair system
-                                            reader.expect(0x01, "system type");
-                                            part.systemtype = reader.uint8();
-                                            reader.expect(0x01, "handler net ID");
-                                            part.handlerid = reader.packed();
-                                            reader.expect(0x01, "amount");
-                                            part.amount = reader.uint8();
-                                            break;
-                                        case 0x1d: // Set tasks
-                                            reader.expect(0x01, "player ID");
-                                            part.playerid = reader.uint8();
-                                            reader.expect(0x01, "number of tasks");
-                                            part.num_tasks = reader.packed();
-                                            reader.expect(0x01, "tasks");
-                                            part.tasks = reader.bytes(part.num_tasks);
-                                            break;
-                                        case 0x1e: // Update game data
-                                            part.players = [];
-    
-                                            while (reader.offset < partend) {
-                                                const player = {};
-                                                reader.expect(0x02, "player data length");
-                                                player.length = reader.uint16LE();
-    
-                                                reader.expect(0x01, "player ID");
-                                                player.playerid = reader.uint8();
-                                                reader.expect(0x01, "name");
-                                                player.name = reader.string();
-                                                reader.expect(0x01, "colour ID");
-                                                player.colour = reader.uint8();
-                                                reader.expect(0x01, "hat ID");
-                                                player.hat = reader.packed();
-                                                reader.expect(0x01, "pet ID");
-                                                player.pet = reader.packed();
-                                                reader.expect(0x01, "skin ID");
-                                                player.skin = reader.packed();
-                                                reader.expect(0x01, "flags");
-                                                player.flags = reader.byte();
-                                                reader.expect(0x01, "number of tasks");
-                                                player.num_tasks = reader.uint8();
-    
-                                                player.tasks = [];
-                                                for (let i = 0; i < player.num_tasks; i++) {
-                                                    const task = {};
-                                                    reader.expect(0x01, "task ID");
-                                                    task.taskid = reader.packed();
-                                                    reader.expect(0x01, "completed");
-                                                    task.completed = reader.bool();
+                                        case 0x17:
+                                            message.num_states = message_reader.uint8("The number of vote states.");
+                                            message.states = {
+                                                name: "States",
+                                                description: "The player vote states.",
+                                                value: [],
+                                                edianness: null,
+                                                startpos: message_reader.offset,
+                                                size: num_states,
+                                                slice: message_reader.slice(message_reader.offset, num_states).buffer,
+                                                warnings: []
+                                            }
+
+                                            for (let i = 0; i < message.num_states.value; i++) {
+                                                const state = {};
+                                                
+                                                const flags = message_reader.byte();
+
+                                                state.player_id = {
+                                                    name: "Player ID",
+                                                    description: "The player ID of the player.",
+                                                    value: i,
+                                                    type: "uint8",
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: 1,
+                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                    warnings: []
                                                 }
 
-                                                part.players.push(player);
+                                                state.voted_for = {
+                                                    name: "Voted for",
+                                                    description: "The player ID of who the player voted for.",
+                                                    value: (flags & 0xF) - 1,
+                                                    type: "uint8",
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: 1,
+                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                    warnings: []
+                                                }
+
+                                                state.reported = {
+                                                    name: "Did report?",
+                                                    description: "Whether or not the player started the meeting.",
+                                                    value: flags & 0x0b10000 === 1,
+                                                    type: "bool",
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: 1,
+                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                    warnings: []
+                                                }
+
+                                                state.voted = {
+                                                    name: "Has voted?",
+                                                    description: "Whether or not the player has voted.",
+                                                    value: flags & 0x0b100000 === 1,
+                                                    type: "bool",
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: 1,
+                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                    warnings: []
+                                                }
+
+                                                state.dead = {
+                                                    name: "Is dead?",
+                                                    description: "Whether or not the player is dead.",
+                                                    value: flags & 0x0b1000000 === 1,
+                                                    type: "bool",
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: 1,
+                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                    warnings: []
+                                                }
+
+                                                message.states.value.push(state);
+                                            }
+
+                                            message.exiled = message_reader.byte("Exiled", "The player ID of who was ejected. 0xFF for skip.", val => val === 0xFF ? "Skipped." : "");
+                                            message.tie = message_reader.bool("Tie", "Whether or not a tie was reached.");
+                                            break;
+                                        case 0x18:
+                                            message.player_id = message_reader.uint8("Player ID", "The player ID of who voted.");
+                                            message.suspect_id = message_reader.uint8("Suspect ID", "The player ID of the voted player.");
+                                            break;
+                                        case 0x19:
+                                            break;
+                                        case 0x1a:
+                                            message.player_id = message_reader.uint8("Player ID", "The player ID of who voted.");
+                                            break;
+                                        case 0x1b:
+                                            message.system = message_reader.uint8("System type", null, e.system_types);
+                                            break;
+                                        case 0x1c:
+                                            message.system = message_reader.uint8("System type", "The system type being repaired.", e.system_types);
+                                            message.netid = message_reader.packed("Net ID", "The net ID of the player control of who repaired the system.");
+                                            message.amount = message_reader.uint8("Amount", "The amount of damage to repair.");
+                                            break;
+                                        case 0x1d:
+                                            message.player_id = message_reader.uint8("Player ID", "The player ID of who's tasks are getting set.");
+                                            message.num_tasks = message_reader.uint8("Number of tasks", "The number of tasks being set.");
+                                            message.tasks = message_reader.bytes(message.num_tasks.value, "Task IDs", "The IDs of the tasks being set.");
+                                            message.tasks.value = message.tasks.value.join(", ");
+                                            break;
+                                        case 0x1e:
+                                            message.players = {
+                                                name: "Players",
+                                                description: "The game data for each player being updated.",
+                                                value: [],
+                                                edianness: null,
+                                                startpos: message_reader.offset,
+                                                size: 1,
+                                                slice: message_reader.slice(message_reader.offset, 1).buffer,
+                                                warnings: []
+                                            }
+
+                                            while (message_reader.left) {
+                                                const player = {};
+                                                player.length = message_reader.uint16LE("Data length", "The length of the player data.");
+                                                const player_start = message_reader.offset;
+                                                player.player_id = message_reader.uint8("Player ID", "The player ID of the player.");
+                                                player.name = message_reader.string("Name", "The name of the player.");
+                                                player.name.warnings.push("huge warning man.");
+                                                player.colour = message_reader.uint8("Colour", "The colour of the player.", e.colour_ids);
+                                                player.hat = message_reader.packed("Hat", "The hat of the player.", e.hat_ids);
+                                                player.pet = message_reader.packed("Pet", "The pet of the player.", e.pet_ids);
+                                                player.skin = message_reader.packed("Skin", "The skin of the player.", e.skin_ids);
+                                                player.flags = message_reader.bitfield("Flags", "The flags for the player.", val => {
+                                                    const flags = [];
+
+                                                    if (val & 0b1) {
+                                                        flags.push("Disconnected.");
+                                                    }
+
+                                                    if (val & 0b10) {
+                                                        flags.push("Imposter");
+                                                    }
+
+                                                    if (val & 0b100) {
+                                                        flags.push("Dead");
+                                                    }
+
+                                                    return flags.length ? flags.join(", ") : "None";
+                                                });
+
+                                                player.num_tasks = message_reader.packed("Number of tasks", "The number of tasks for the player.");
+                                                player.tasks = {
+                                                    name: "Tasks",
+                                                    description: "The tasks for the player.",
+                                                    value: [],
+                                                    edianness: null,
+                                                    startpos: message_reader.offset,
+                                                    size: (player_start + player.length.value) - message_reader.offset,
+                                                    slice: message_reader.slice(message_reader.offset, (player_start + player.length.value) - message_reader.offset).buffer,
+                                                    warnings: []
+                                                }
+
+                                                for (let i = 0; i < player.num_tasks.value; i++) {
+                                                    const task = {};
+                                                    task.task_id = message_reader.packed("Task ID", "The task index of the player's tasks.");
+                                                    task.completed = message_reader.bool("Completed", "Whether or not the task has been completed.");
+                                                    player.tasks.value.push(task);
+                                                }
+                                                
+                                                message.players.value.push(player);
                                             }
                                             break;
                                     }
                                     break;
-                                case 0x04: // Spawn
-                                    reader.expect(0x01, "spawn ID");
-                                    part.spawnid = reader.packed();
-                                    reader.expect(0x01, "owner ID");
-                                    part.ownerid = reader.packed();
-                                    reader.expect(0x01, "spawn flags");
-                                    part.flags = reader.byte();
-                                    reader.expect(0x01, "number of components");
-                                    part.num_components = reader.packed();
-                                    part.components = [];
-    
-                                    for (let i = 0; i < part.num_components; i++) {
+                                case 0x04:
+                                    message.spawnid = message_reader.packed("Spawn ID", "The ID of the object being spawned.", e.spawn_ids);
+                                    message.parentid = message_reader.packed("Parent ID", "The parent ID of the object.", val => val === -2 ? "Global" : null);
+                                    message.flags = message_reader.bitfield("Flags", "The spawn flags for the object.", function (val) {
+                                        const flags = [];
+
+                                        if (val & 0x01) {
+                                            flags.push("Is player control.");
+                                        }
+
+                                        return flags.length ? flags.join(", ") : "None";
+                                    });
+
+                                    const num_components = message_reader.packed("Number of components", "The number of components in the object.");
+
+                                    for (let i = 0; i < num_components.value; i++) {
                                         const component = {};
-                                        reader.expect(0x01, "net ID");
-                                        component.netid = reader.packed();
-                                        reader.expect(0x02, "data length");
-                                        component.datalen = reader.uint16LE();
-                                        reader.expect(0x01, "type");
-                                        component.type = reader.uint8();
-    
-                                        reader.expect(component.datalen, "component data");
-                                        component.data = reader.buffer.slice(reader.offset, reader.offset + component.datalen);
-    
-                                        reader.jump(component.datalen);
-    
-                                        part.components.push(component);
+                                        component.netid = message_reader.packed("Net ID", "The net ID of the component.");
+                                        component.data_length = message_reader.uint16LE("Data size", "The length of component data.");
+                                        message_reader.uint8("Type", "This is ignored, it's safe to be a hardcoded 0.");
+
+                                        component.data = message_reader.bytes(component.data_length.value, "Data", "The data for the component.", function (bytes) {
+                                            return bytes.map(byte => ToHex(byte, null, packet_value.endianness === "big")).join(" ");
+                                        });
                                     }
                                     break;
-                                case 0x05: // Despawn
-                                    reader.expect(0x01, "net ID");
-                                    part.netid = reader.packed();
+                                case 0x05:
+                                    message.netid = message_reader.packed("Net ID", "The net ID of the component to despawn.");
                                     break;
-                                case 0x06: // Scene change
-                                    reader.expect(0x01, "client ID");
-                                    part.clientid = reader.packed();
-                                    reader.expect(0x01, "location");
-                                    part.location = reader.string();
+                                case 0x06:
+                                    message.clientid = message_reader.packed("Client ID", "The client ID of the player requesting a scene change.");
+                                    message.location = message_reader.string("Location", "The location of the scene change.");
                                     break;
-                                case 0x07: // Ready
-                                    reader.expect(0x01, "client ID");
-                                    part.clientid = reader.packed();
+                                case 0x07:
+                                    message.clientid = message_reader.packed("Client ID", "The client ID of the ready'd player.");
                                     break;
-                                case 0x08: // Change settings
+                                case 0x08:
                                     break;
                             }
 
-                            reader.goto(partend);
-                            payload.parts.push(part);
+                            payload_reader.goto(message_reader.end - payload_reader.base);
+                            payload.messages.value.push(message);
                         }
                         break;
-                    case 0x07: // Joined game
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
-                        reader.expect(0x04, "client ID");
-                        payload.clientid = reader.uint32LE();
-                        reader.expect(0x04, "host ID");
-                        payload.hostid = reader.uint32LE();
-                        reader.expect(0x01, "number of clients");
-                        payload.num_clients = reader.packed();
-    
-                        payload.clients = [];
-                        for (let i = 0; i < payload.num_clients; i++) {
-                            reader.expect(0x01, "client ID");
-                            payload.clients.push(reader.packed());
+                    case 0x07:
+                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", Int2Code);
+                        payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
+                        payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the host of the game.");
+
+                        const num_clients = payload_reader.packed("Number of clients", "The number of clients in the game, excluding the client ID that joined.");
+                        
+                        payload.clients = {
+                            name: "Clients",
+                            description: "The clients connected to the game, excluding the client ID that joined.",
+                            value: [],
+                            edianness: null,
+                            startpos: payload_reader.offset,
+                            size: payload_reader.left,
+                            slice: payload_reader.slice(payload_reader.offset).buffer,
+                            warnings: []
+                        }
+
+                        for (let i = 0; i < num_clients.value; i++) {
+                            const clientid = payload_reader.packed("Client ID", "An ID of a client connected to the game.");
+
+                            payload.clients.value.push({ clientid });
                         }
                         break;
-                    case 0x08: // End game
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
-                        reader.expect(0x01, "reason");
-                        payload.reason = reader.uint8();
-                        reader.expect(0x01, "show ad?");
-                        payload.show_ad = reader.bool();
+                    case 0x08:
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game that ended.", Int2Code);
+                        payload.end_reason = payload_reader.packed("End reason", "The reason for why the game is being ended.", e.endgame_reasons);
+                        payload.show_ad = payload_reader.bool("Show ad?", "Whether or not an ad should be shown (for mobile).");
                         break;
-                    case 0x0a: // Alter game
-                        reader.expect(0x04, "code");
-                        payload.code = reader.int32LE();
-                        reader.expect(0x01, "alter tag");
-                        payload.alter_tag = reader.uint8();
-                        reader.expect(0x01, "public?");
-                        payload.is_public = reader.bool();
-                        break; 
-                    case 0x0b: // Kick player
-                        if (packet.bound === "client") {
-                            reader.expect(0x04, "code");
-                            payload.code = reader.int32LE();
-                            reader.expect(0x01, "client ID");
-                            payload.clientid = reader.packed();
-                            reader.expect(0x01, "banned?");
-                            payload.banned = reader.bool();
+                    case 0x0a:
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game being altered.", Int2Code);
+                        payload.tag = payload_reader.packed("Alter game tag", "The tag for the alter game, i.e what is being changed.", e.alter_tags);
+                        payload.is_public = payload_reader.bool("Is public?", "Whether or not the game is being made public or not.");
+                        break;
+                    case 0x0b:
+                        if (bound === "server") {
+                            payload.clientid = payload_reader.packed("Client ID", "The player ID to kick.");
+                            payload.is_ban = payload_reader.bool("Is Ban?", "Whether or not the player is banned.");
                         } else {
-                            reader.expect(0x01, "client ID");
-                            payload.clientid = reader.packed();
-                            reader.expect(0x01, "banned?");
-                            payload.banned = reader.bool();
+                            payload.code = payload_reader.int32LE("Game code", "The code for the game where the player is being kicked.", Int2Code);
+                            payload.clientid = payload_reader.packed("Client ID", "The player ID to kick.");
+                            payload.is_ban = payload_reader.bool("Is Ban?", "Whether or not the player is banned.");
                         }
                         break;
-                    case 0x0d: // Redirect
-                        reader.expect(0x04, "ip");
-                        payload.ip = reader.bytes(0x04).join(".");
-                        reader.expect(0x02, "port");
-                        payload.port = reader.uint16LE();
+                    case 0x0d:
+                        payload.ipaddr = payload_reader.bytes(4, "IP address", "The IP address of the new game datacenter to connect to.");
+                        payload.port = payload_reader.uint16LE("Port", "The port of the new game datacenter to connect to.");
                         break;
-                    case 0x0e: // Master server list
-                        reader.expect(0x01, "master server flag");
-                        reader.byte();
-                        reader.expect(0x01, "number of servers");
-                        payload.num_servers = reader.uint8();
-                        payload.servers = [];
-                        for (let i = 0; i < payload.num_servers; i++) {
-                            let server = {};
-                            const start = reader.offset;
-                            reader.expect(0x02, "server length");
-                            server.length = reader.uint16LE();
-                            reader.expect(0x01, "server flag");
-                            server.flag = reader.byte();
-                            reader.expect(0x01, "server name");
-                            server.name = reader.string();
-                            reader.expect(0x04, "server ip");
-                            server.ip = reader.bytes(0x04).join(".");
-                            reader.expect(0x02, "server port");
-                            server.port = reader.uint16LE();
-                            reader.expect(0x01, "number of players");
-                            server.num_players = reader.packed();
-    
-                            if (reader.offset - start - 3 !== server.length) {
-                                payload.warnings.push("Invalid length of master server at byte " + start + ", expected " + (reader.offset - start - 3) + ", got " + server.length + ".");
-                            }
-    
-                            payload.servers.push(server);
+                    case 0x0e:
+                        payload_reader.jump(0x01);
+                        const num_servers = payload_reader.uint8();
+
+                        payload.servers = {
+                            name: "Servers",
+                            description: "A list of game datacenters for the connected region.",
+                            value: [],
+                            edianness: null,
+                            startpos: payload_reader.offset,
+                            size: payload_reader.buffer.byteLength - 2,
+                            slice: payload_reader.buffer,
+                            warnings: []
+                        }
+
+                        for (let i = 0; i < num_servers.value; i++) {
+                            const server = {};
+
+                            server.length = payload_reader.uint16LE("Server length", "The length of the master server.");
+                            payload_reader.jump(0x01);
+
+                            const server_reader = payload_reader.slice(payload_reader.offset, server.length.value);
+
+                            server.name = server_reader.string("Server name", "The name of the master server.");
+                            server.ipaddr = server_reader.bytes(4, "IP address", "The IP address of the master server.");
+                            server.ipaddr.value = server.ipaddr.value.join(".");
+                            server.port = server_reader.uint16LE("Port", "The port of the master server.");
+                            server.num_players = server_reader.packed("Player count", "The number of clients currently connected to the master server.");
+
+                            payload.servers.value.push(server);
+                            payload_reader.goto(server_reader.end - payload_reader.base);
                         }
                         break;
-                    case 0x10: // Get game list v2
-                        if (packet.bound === "client") {
-                            reader.expect(0x02, "list length");
-                            payload.length = reader.uint16LE();
-                            reader.expect(0x01, "list tag");
-                            payload.list_tag = reader.byte();
-                            
-                            switch (payload.list_tag) {
-                                case 0x00:
-                                    const start = reader.offset;
+                    case 0x10:
+                        const message_length = payload_reader.uint16LE("Message length", "The length of the game list payload.");
+                        const message_tag = payload_reader.uint8("Message tag", "The tag for the game list payload.", ["game list", "game count"]);
+                        const message_reader = payload_reader.slice(payload_reader.offset, message_length.value);
 
-                                    payload.games = [];
-                                    while (reader.offset < payloadend) {
-                                        const game = {};
-                                        reader.expect(0x02, "game length");
-                                        game.length = reader.uint16LE();
-                                        reader.byte();
-
-                                        reader.expect(0x04, "game ip");
-                                        game.ip = reader.bytes(4).join(".");
-                                        reader.expect(0x02, "game port");
-                                        game.port = reader.uint16LE();
-                                        reader.expect(0x04, "game code");
-                                        game.code = reader.int32LE();
-                                        reader.expect(0x01, "game name");
-                                        game.name = reader.string();
-                                        reader.expect(0x01, "number of players");
-                                        game.num_players = reader.uint8();
-                                        reader.expect(0x01, "game age");
-                                        game.age = reader.packed();
-                                        reader.expect(0x01, "map ID");
-                                        game.map = reader.uint8();
-                                        reader.expect(0x01, "imposter count");
-                                        game.imposters = reader.uint8();
-                                        reader.expect(0x01, "max players");
-                                        game.max_players = reader.uint8();
-                                        
-                                        payload.games.push(game);
-                                    }
-                                    break;
-                                case 0x01:
-                                    payload.count = [];
-
-                                    reader.expect(0x04, "skeld games");
-                                    payload.count.push(reader.uint32LE());
-                                    reader.expect(0x04, "mira hq games");
-                                    payload.count.push(reader.uint32LE());
-                                    reader.expect(0x04, "polus games");
-                                    payload.count.push(reader.uint32LE());
-                                    break;
+                        switch (message_tag.value) {
+                            case 0x00:
+                                payload.games = {
+                                    name: "Games",
+                                    description: "The games in the game list.",
+                                    value: [],
+                                    edianness: null,
+                                    startpos: message_reader.offset,
+                                    size: message_reader.buffer.byteLength - 2,
+                                    slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
+                                    warnings: []
                                 }
-                        } else {
-                            reader.expect(0x01, "game list flag");
-                            reader.byte();
-                            payload.options = parseGameOptions(reader);
+
+                                while (message_reader.left) {
+                                    const game = {};
+
+                                    game.length = message_reader.uint16LE("Game length", "The length of the game listing.");
+                                    message_reader.jump(0x01);
+
+                                    const game_reader = message_reader.slice(message_reader.offset, game.length.value);
+
+                                    game.ipaddr = game_reader.bytes(4, "IP address", "The IP address of the game datacenter.");
+                                    game.ipaddr.value = game.ipaddr.value.join(".");
+                                    game.port = game_reader.uint16LE("Port", "The port of the game datacenter.");
+                                    game.code = game_reader.int32LE("Game code", "The 6 digit game code for the game.", Int2Code);
+                                    game.name = game_reader.string("Name", "The name of the game, i.e. The host's name.");
+                                    game.num_players = game_reader.packed("Number of players", "The number of players in the game currently.");
+                                    game.age = game_reader.packed("Age", "The age of the game in seconds since its creation.");
+                                    game.mapID = game_reader.uint8("Map ID", "The map ID for the game.", e.map_ids);
+                                    game.num_imposters = game_reader.uint8("Number of imposters", "The number of imposters in the game.");
+                                    game.max_players = game_reader.uint8("Max players", "The maximum number of players allowed to join the game.");
+
+                                    payload.games.value.push(game);
+                                    message_reader.goto(game_reader.end - message_reader.base);
+                                }
+                                break;
+                            case 0x01:
+                                payload.count = {
+                                    name: "Count",
+                                    description: "The total number of games for each map.",
+                                    value: {},
+                                    edianness: null,
+                                    startpos: message_reader.offset,
+                                    size: message_reader.buffer.byteLength - 2,
+                                    slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
+                                    warnings: []
+                                }
+
+                                payload.count.value.the_skeld = message_reader.uint32LE("The Skeld", "The total number of games on The Skeld.");
+                                payload.count.value.mira_hq = message_reader.uint32LE("Mira HQ", "The total number of games on Mira HQ.");
+                                payload.count.value.polus = message_reader.uint32LE("Polus", "The total number of games on Polus.");
+                                break;
                         }
                         break;
-                    default:
-                        packet.warnings.push("Invalid or unsupported tag.");
                 }
 
-                reader.goto(payloadend + 1);
-                packet.payloads.push(payload);
+                packet_reader.jump(payload_reader.end);
+
+                packet.payloads.value.push(payload);
             }
             break;
-        case 0x08: // Hello
-            packet.bound = "server";
-            packet.reliable = true;
-            reader.expect(0x02, "nonce");
-            packet.nonce = reader.uint16BE();
-            reader.expect(0x01, "hazel version");
-            packet.hazelver = reader.uint8();
-            reader.expect(0x04, "client version");
-            packet.clientver = reader.int32LE();
-            reader.expect(0x01, "username");
-            packet.username = reader.string();
+        case 0x08:
+            packet.nonce = packet_reader.uint16BE("Nonce", "The acknowledgement identifier for the packet.");
+            packet.hazel_ver = packet_reader.byte("Hazel Version", "The version of the Hazel, should be 0x00");
+            packet.client_ver = packet_reader.uint32LE("Client Version", "The version of the client.", FormatVersion);
+            packet.name = packet_reader.string("Name", "The username identifier of the client.");
             break;
-        case 0x09: // Disconnect
-            if (reader.left) {
-                reader.expect(0x01, "flag");
-                reader.jump(0x01);
-                reader.expect(0x02, "length");
-                reader.jump(0x02);
-                reader.expect(0x01, "flag");
-                reader.jump(0x01);
+        case 0x09:
+            packet_reader.jump(0x04);
 
-                reader.expect(0x01, "reason");
-                packet.reason = reader.uint8();
+            if (packet_reader.left) {
+                packet.reason = packet_reader.uint8("Reason", "The reason for disconnecting, usually empty for serverbound packets.", e.disconnect_reasons);
 
-                if (packet.reason === 0x08) {
-                    reader.expect(0x01, "message")
-                    packet.message = reader.string();
+                if (packet.reason.value === 0x08) {
+                    packet.message = packet_reader.string("Message", "The message attached to a custom disconnect reason (0x08).");
                 }
             }
             break;
-        case 0x0a: // Acknowledege
-            reader.expect(0x02, "nonce");
-            packet.nonce = reader.uint16BE();
-            const ffpos = reader.offset;
-            let FF;
-            if (reader.left < 1) {
-                packet.warnings.push("Expected 0xFF after byte " + ffpos + ".");
-            } else if ((FF = reader.uint8()) !== 0xFF) {
-                packet.warnings.push("Expected 0xFF after byte " + ffpos + ", got 0x" + FF.toString(16).toUpperCase() + ".");
-            }
+        case 0x0a:
+            packet.nonce = packet_reader.uint16BE("Nonce", "The acknowledgement identifier to acknowledge.");
+            packet.received = packet_reader.bitfield("Received", "A bitfield of the last 8 packets and whether or not they were acknowledged, telling the receiver that you are still waiting for these packets.");
             break;
-        case 0x0c: // Ping
-            packet.bound = "client";
-            packet.reliable = true;
-            reader.expect(0x02, "nonce");
-            packet.nonce = reader.uint16BE();
-            break;
-        default:
-            packet.warnings.push("Invalid or unsupported opcode.");
+        case 0x0c:
+            packet.nonce = packet_reader.uint16BE("Nonce", "The acknowledgement identifier for the packet.");
             break;
     }
 

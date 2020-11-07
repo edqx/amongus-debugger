@@ -3,10 +3,10 @@
 
     import toBuffer from "../lib/toBuffer.js"
     import parsePacket from "../lib/parsePacket.js"
-    import renderPacket from "../lib/renderPacket.js"
-    import { Packet as WorkspacePacket, getWorkspace } from "../lib/Workspace.js"
+    import { Packet, getWorkspace } from "../lib/Workspace.js"
 
-    import Packet from "../components/Packet.svelte"
+    import WorkspacePacket from "../components/Packet.svelte"
+    import PacketValue from "../components/PacketValue.svelte" 
 
     const workspace = getWorkspace();
     let selectedPacket = parseInt(localStorage.getItem("selected")) || 0;
@@ -60,7 +60,7 @@
     }
 
     function newPacket() {
-        workspace.packets.push(new WorkspacePacket(workspace, {
+        workspace.packets.push(new Packet(workspace, {
             data: [],
             serverbound: false
         }));
@@ -76,7 +76,7 @@
         workspace.packets = workspace.packets;
 
         if (workspace.packets.length === 0) {
-            workspace.packets.push(new WorkspacePacket(workspace, {
+            workspace.packets.push(new Packet(workspace, {
                 data: [],
                 serverbound: false
             }));
@@ -91,7 +91,7 @@
 
     $: selectedPacket, onSelect();
 
-    let rendered = "";
+    let parsed = "";
     let error = "";
 
     function doRender() {
@@ -99,11 +99,11 @@
             const bytes = packetinput.replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g).join(" ");
 
             try {
-                rendered = renderPacket(parsePacket(toBuffer(bytes), serverbound ? "server" : "client"));
+                parsed = parsePacket(toBuffer(bytes), serverbound ? "server" : "client");
                 error = "";
             } catch (e) {
                 error = e;
-                rendered = "";
+                parsed = "";
 
                 console.log(e);
             }
@@ -111,7 +111,7 @@
             packetinput = bytes;
         } else {
             error = "";
-            rendered = "";
+            parsed = "";
         }
     }
 
@@ -120,6 +120,8 @@
     }
 
     $: packetinput, serverbound, doRender();
+
+    let selected_value = "";
 </script>
 
 <span class="title">Among Us Debugger</span>
@@ -136,18 +138,22 @@
             <button style="float:right;" class="not-good" on:click={() => deletePacket(selectedPacket)}>Delete</button>
         </div>
         <div class="parsed-packet">
-            {#if rendered || error}
+            {#if parsed || error}
                 {#if error}
                     <span class="error">{error}</span>
                 {:else}
-                    {@html rendered}
+                    {#each Object.entries(parsed) as [keyname, packet_value]}
+                        {#if typeof packet_value === "object"}
+                            <PacketValue parent_keyname="packet" object_keyname={keyname} {packet_value}/>
+                        {/if}
+                    {/each}
                 {/if}
             {/if}
         </div>
     </div>
     <div class="workspace-list">
         {#each workspace.packets as packet, i}
-            <Packet selected={selectedPacket === i} {packet} packeti={i} on:select={() => selectPacket(i)} on:delete={() => deletePacket(i)}/>
+            <WorkspacePacket selected={selectedPacket === i} {packet} packeti={i} on:select={() => selectPacket(i)} on:delete={() => deletePacket(i)}/>
         {/each}
         <!-- svelte-ignore a11y-missing-attribute -->
         <a class="new-packet" on:click={newPacket}>

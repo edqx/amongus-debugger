@@ -3,7 +3,7 @@
     import { EncodeVersion, DecodeVersion } from "../lib/util/Versions.js"
     import { Buffer } from "buffer/"
 
-    import BufferReader from "../lib/util/BufferReader.js"
+    import PacketReader from "../lib/util/PacketReader.js"
 
     import toBuffer from "../lib/toBuffer.js"
 
@@ -122,18 +122,16 @@
 
             val >>= 7;
         } while (val > 0);
-
-        console.log(bytes);
         
         packedbytes = bytes.map(byte => hex(byte)).join(" ");
     }
 
     function setPackedInt() {
         const buff = toBuffer(packedbytes);
-        const reader = new BufferReader(buff);
+        const reader = new PacketReader(buff);
 
         try {
-            packedint = reader.packed().toString();
+            packedint = reader.packed().value.toString();
         } catch (e) {
             packedint = "0";
         }
