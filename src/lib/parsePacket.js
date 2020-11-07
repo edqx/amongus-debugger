@@ -72,7 +72,7 @@ function readGameOptions(reader, search) {
         options.visualTasks = reader.bool("Visual tasks", "Whether or not tasks have a visual identifier if applicable, e.g. Medbay");
     }
 
-    if (options.value.version.value >= 4&& !search) {
+    if (options.value.version.value >= 4 && !search) {
         options.anonymousVoting = reader.bool("Anonymous voting", "Whether or not votes during meetings are anonymous.");
         options.taskBarUpdates = reader.bool("When the task bar should update, after a task, after meetings or never.", e.task_bar_updates);
     }
