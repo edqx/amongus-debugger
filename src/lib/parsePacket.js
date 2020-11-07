@@ -25,6 +25,7 @@ function readGameOptions(reader, search) {
     options.value.version = reader.byte("Version", "The version of the game options. (2, 3, 4)");
     options.value.max_players = reader.uint8("Max players", "The maximum players allowed in the game.");
     options.value.language = reader.uint32LE("Language", "The language of the chat in the game.");
+
     if (search) {
         options.value.mapID = reader.uint8("Map ID", "The map of the game.", e.map_ids);
     } else {
@@ -46,6 +47,7 @@ function readGameOptions(reader, search) {
             return maps.join(", ");
         });
     }
+
     options.value.playerSpeed = reader.floatLE("Player speed", "The speed multiplier for crewmates and imposters.");
     options.value.crewmateVision = reader.floatLE("Crewmate vision", "The vision multiplier for crewmates.");
     options.value.imposterVision = reader.floatLE("Imposter vision", "The vision multiplier for imposters.");
@@ -65,12 +67,12 @@ function readGameOptions(reader, search) {
     }
 
 
-    if (options.value.version.value >= 3) {
+    if (options.value.version.value >= 3 && !search) {
         options.confirmEjects = reader.bool("Confirm ejects", "Whether or not ejects are confirmed, saying whether or not the voted out person was the imposter.");
         options.visualTasks = reader.bool("Visual tasks", "Whether or not tasks have a visual identifier if applicable, e.g. Medbay");
     }
 
-    if (options.value.version.value >= 4) {
+    if (options.value.version.value >= 4&& !search) {
         options.anonymousVoting = reader.bool("Anonymous voting", "Whether or not votes during meetings are anonymous.");
         options.taskBarUpdates = reader.bool("When the task bar should update, after a task, after meetings or never.", e.task_bar_updates);
     }
