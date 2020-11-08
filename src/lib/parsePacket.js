@@ -3,6 +3,7 @@ import PacketReader from "./util/PacketReader.js"
 import { FormatVersion } from "./util/Versions.js"
 import { Int2Code } from "./util/GameCodes.js"
 import { LerpValue } from "./util/Lerp.js"
+import { ToHex } from "./util/ToHex.js"
 
 import * as e from "./constants/enums.js"
 
@@ -84,7 +85,268 @@ function readGameOptions(reader, search) {
     return options;
 }
 
-export default function parsePacket(buffer, bound) {
+function readVoteState(reader, i) {
+    const state = {};
+
+    const byte = reader.byte();
+
+    state.player_id = {
+        name: "Player ID",
+        description: "The player ID of the player.",
+        value: i,
+        type: "uint8",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    state.voted_for = {
+        name: "Voted for",
+        description: "The player ID of who the player voted for.",
+        value: (byte & 0xF) - 1,
+        type: "uint8",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        display: val => val === -1 ? "No one." : "",
+        warnings: []
+    }
+
+    state.reported = {
+        name: "Did report?",
+        description: "Whether or not the player started the meeting.",
+        value: (byte & 0x0b10000) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    state.voted = {
+        name: "Has voted?",
+        description: "Whether or not the player has voted.",
+        value: (byte & 0x0b100000) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    state.dead = {
+        name: "Is dead?",
+        description: "Whether or not the player is dead.",
+        value: (byte & 0x0b1000000) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    return state;
+}
+
+function readPlayerDataFlags(reader) {
+    const flags = {};
+
+    const byte = reader.byte();
+
+    flags.reported = {
+        name: "Disconnected?",
+        description: "Whether or not the player has disconnected.",
+        value: (byte & 0b1) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    flags.imposter = {
+        name: "Imposter?",
+        description: "Whether or not the player is an imposter.",
+        value: (byte & 0b10) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    flags.dead = {
+        name: "Dead?",
+        description: "Whether or not the player is dead.",
+        value: (byte & 0b100) !== 0,
+        type: "bool",
+        edianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    }
+
+    return flags;
+}
+
+function readPlayerData(reader) {
+    const player = {};
+    player.length = reader.uint16LE("Player length", "The length of player data.");
+    player.playerId = reader.uint8("Player ID", "The player's player ID.");
+    player.name = reader.string("Name", "The player's name.");
+    player.colour = reader.uint8("Colour", "The player's colour,");
+    player.hat = reader.packed("Hat", "The player's hat.");
+    player.pet = reader.packed("Pet", "The player's pet.");
+    player.skin = reader.packed("Skin", "The player's skin.");
+    player.flags = readPlayerDataFlags(reader);
+    
+    const num_tasks = reader.packed("Number of tasks", "The number of tasks for the player.");
+    player.tasks = {
+        name: "Tasks",
+        description: "The tasks for the player.",
+        value: [],
+        edianness: null,
+        startpos: reader.offset,
+        size: (player_start + player.length.value) - reader.offset,
+        slice: reader.slice(reader.offset, (player_start + player.length.value) - reader.offset).buffer,
+        warnings: []
+    }
+
+    for (let i = 0; i < player.num_tasks.value; i++) {
+        const task = {};
+        task.task_id = reader.packed("Task ID", "The task index of the player's tasks.");
+        task.completed = reader.bool("Completed", "Whether or not the task has been completed.");
+        player.tasks.value.push(task);
+    }
+
+    return player;
+}
+
+function readShipStatusComponent(reader, component, spawn) {
+    
+}
+
+function readMeetingHudComponent(reader, component, spawn) {
+    component.states = {
+        name: "Components",
+        description: "The components for the object being spawned.",
+        value: [],
+        edianness: null,
+        startpos: reader.offset,
+        size: reader.end - reader.offset,
+        slice: reader.slice(reader.offset).buffer,
+        warnings: []
+    }
+
+    if (spawn) {
+        for (let i = 0; reader.left; i++) {
+            component.states.value.push(readVoteState(reader, i));
+        }
+    } else {
+        const updateMask = reader.packed().value;
+
+        for (let i = 0; reader.left; i++) {
+            if (((1 << i) & updateMask) !== 0) {
+                component.states.value.push(readVoteState(reader, i));
+            }
+        }
+    }
+}
+
+function readFollowerCameraComponent(reader, component, spawn) {
+
+}
+
+function readGameDataComponent(reader, component, spawn) {
+    component.players = {
+        name: "Players",
+        description: "The players in the game data.",
+        value: [],
+        edianness: null,
+        startpos: reader.offset,
+        size: reader.end - reader.offset,
+        slice: reader.slice(reader.offset).buffer,
+        warnings: []
+    }
+
+    const num_players = reader.uint8("Number of players", "The number of players in the game data.");
+
+    for (let i = 0; i < num_players.value; i++) {
+        component.players.value.push(readPlayerData(reader));
+    }
+}
+
+function readVoteBanSystemComponent(reader, component, spawn) {
+    component.voted = {
+        name: "Voted",
+        description: "All players that have been voted.",
+        value: [],
+        edianness: null,
+        startpos: reader.offset,
+        size: reader.end - reader.offset,
+        slice: reader.slice(reader.offset).buffer,
+        warnings: []
+    }
+
+    const num_voted = reader.uint8("Number of players", "The number of players that have been voted.");
+    
+    for (let i = 0; i < num_voted; i++) {
+        const vote = {};
+        vote.clientid = reader.uint32LE("Voted", "The client ID of the voted player.");
+
+        vote.votes = {
+            name: "Votes",
+            description: "All players that have voted this player.",
+            value: [],
+            edianness: null,
+            startpos: reader.offset,
+            size: 3,
+            slice: reader.slice(reader.offset, 3).buffer,
+            warnings: []
+        }
+
+        vote.votes.value.push(reader.packed());
+
+        component.voted.push(vote);
+    }
+}
+
+function readPlayerControlComponent(reader, component, spawn) {
+    if (spawn) {
+        component.isNew = reader.bool("Is new?", "Whether or not the player being spawned is the first time that it is seen.");
+    }
+    
+    component.playerId = reader.uint8("Player ID", "The player ID of the player.");
+}
+
+function readPlayerPhysicsComponent(reader, component, spawn) {
+
+}
+
+function readCustomNetworkTransform(reader, component, spawn) {
+    component.sequence = reader.uint16LE("Sequence number", "The sequence number of this movement.");
+    
+    component.xpos = reader.uint16LE("X position", "The X position of the player.");
+    component.xpos.value = LerpValue(component.xpos.value / 65535, -40, 40);
+    component.xpos = reader.uint16LE("Y position", "The X position of the player.");
+    component.ypos.value = LerpValue(component.ypos.value / 65535, -40, 40);
+    
+    component.xvel = reader.uint16LE("X velocity", "The X velocity of the player.");
+    component.xvel.value = LerpValue(component.xvel.value / 65535, -40, 40);
+    component.yvel = reader.uint16LE("Y velocity", "The Y velocity of the player.");
+    component.yvel.value = LerpValue(component.yvel.value / 65535, -40, 40);
+}
+
+export default function readPacket(buffer, bound) {
     const packet_reader = new PacketReader(buffer);
 
     const packet = {};
@@ -200,9 +462,9 @@ export default function parsePacket(buffer, bound) {
                                     message.netid = message_reader.packed("Net ID", "The component net ID to send the data to for deserialization.");
                                     const data_length = message_reader.left;
                                     message.data = message_reader.bytes(data_length, "Data", "The data for the component.");
-                                    message.data.value = message.data.value.map(function (bytes) {
-                                        return bytes.map(byte => ToHex(byte, null, packet_value.endianness === "big")).join(" ");
-                                    });
+                                    message.data.value = message.data.value.map(val => {
+                                        return ToHex(val, null);
+                                    }).join(" ");
                                     break;
                                 case 0x02:
                                     message.handlerid = message_reader.packed("Handler ID", "The net ID of the component responsible for sending the game data.");
@@ -311,71 +573,7 @@ export default function parsePacket(buffer, bound) {
                                             }
 
                                             for (let i = 0; i < message.num_states.value; i++) {
-                                                const state = {};
-                                                
-                                                const flags = message_reader.byte();
-
-                                                state.player_id = {
-                                                    name: "Player ID",
-                                                    description: "The player ID of the player.",
-                                                    value: i,
-                                                    type: "uint8",
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: 1,
-                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
-                                                    warnings: []
-                                                }
-
-                                                state.voted_for = {
-                                                    name: "Voted for",
-                                                    description: "The player ID of who the player voted for.",
-                                                    value: (flags & 0xF) - 1,
-                                                    type: "uint8",
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: 1,
-                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
-                                                    warnings: []
-                                                }
-
-                                                state.reported = {
-                                                    name: "Did report?",
-                                                    description: "Whether or not the player started the meeting.",
-                                                    value: flags & 0x0b10000 === 1,
-                                                    type: "bool",
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: 1,
-                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
-                                                    warnings: []
-                                                }
-
-                                                state.voted = {
-                                                    name: "Has voted?",
-                                                    description: "Whether or not the player has voted.",
-                                                    value: flags & 0x0b100000 === 1,
-                                                    type: "bool",
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: 1,
-                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
-                                                    warnings: []
-                                                }
-
-                                                state.dead = {
-                                                    name: "Is dead?",
-                                                    description: "Whether or not the player is dead.",
-                                                    value: flags & 0x0b1000000 === 1,
-                                                    type: "bool",
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: 1,
-                                                    slice: message_reader.slice(message_reader.offset, 1).buffer,
-                                                    warnings: []
-                                                }
-
-                                                message.states.value.push(state);
+                                                message.states.value.push(readVoteState(message_reader, i));
                                             }
 
                                             message.exiled = message_reader.byte("Exiled", "The player ID of who was ejected. 0xFF for skip.", val => val === 0xFF ? "Skipped." : "");
@@ -417,54 +615,7 @@ export default function parsePacket(buffer, bound) {
                                             }
 
                                             while (message_reader.left) {
-                                                const player = {};
-                                                player.length = message_reader.uint16LE("Data length", "The length of the player data.");
-                                                const player_start = message_reader.offset;
-                                                player.player_id = message_reader.uint8("Player ID", "The player ID of the player.");
-                                                player.name = message_reader.string("Name", "The name of the player.");
-                                                player.name.warnings.push("huge warning man.");
-                                                player.colour = message_reader.uint8("Colour", "The colour of the player.", e.colour_ids);
-                                                player.hat = message_reader.packed("Hat", "The hat of the player.", e.hat_ids);
-                                                player.pet = message_reader.packed("Pet", "The pet of the player.", e.pet_ids);
-                                                player.skin = message_reader.packed("Skin", "The skin of the player.", e.skin_ids);
-                                                player.flags = message_reader.bitfield("Flags", "The flags for the player.", val => {
-                                                    const flags = [];
-
-                                                    if (val & 0b1) {
-                                                        flags.push("Disconnected.");
-                                                    }
-
-                                                    if (val & 0b10) {
-                                                        flags.push("Imposter");
-                                                    }
-
-                                                    if (val & 0b100) {
-                                                        flags.push("Dead");
-                                                    }
-
-                                                    return flags.length ? flags.join(", ") : "None";
-                                                });
-
-                                                player.num_tasks = message_reader.packed("Number of tasks", "The number of tasks for the player.");
-                                                player.tasks = {
-                                                    name: "Tasks",
-                                                    description: "The tasks for the player.",
-                                                    value: [],
-                                                    edianness: null,
-                                                    startpos: message_reader.offset,
-                                                    size: (player_start + player.length.value) - message_reader.offset,
-                                                    slice: message_reader.slice(message_reader.offset, (player_start + player.length.value) - message_reader.offset).buffer,
-                                                    warnings: []
-                                                }
-
-                                                for (let i = 0; i < player.num_tasks.value; i++) {
-                                                    const task = {};
-                                                    task.task_id = message_reader.packed("Task ID", "The task index of the player's tasks.");
-                                                    task.completed = message_reader.bool("Completed", "Whether or not the task has been completed.");
-                                                    player.tasks.value.push(task);
-                                                }
-                                                
-                                                message.players.value.push(player);
+                                                message.players.value.push(readPlayerData(reader));
                                             }
                                             break;
                                     }
@@ -484,15 +635,98 @@ export default function parsePacket(buffer, bound) {
 
                                     const num_components = message_reader.packed("Number of components", "The number of components in the object.");
 
+                                    message.components = {
+                                        name: "Components",
+                                        description: "The components for the object being spawned.",
+                                        value: [],
+                                        edianness: null,
+                                        startpos: message_reader.offset,
+                                        size: message_reader.end - message_reader.offset,
+                                        slice: message_reader.slice(message_reader.offset).buffer,
+                                        warnings: []
+                                    }
+
                                     for (let i = 0; i < num_components.value; i++) {
                                         const component = {};
-                                        component.netid = message_reader.packed("Net ID", "The net ID of the component.");
+                                        component.netid = message_reader.packed("Net ID", "The net ID of the component.", _ => e.components[message.spawnid.value][i]);
                                         component.data_length = message_reader.uint16LE("Data size", "The length of component data.");
                                         message_reader.uint8("Type", "This is ignored, it's safe to be a hardcoded 0.");
 
-                                        component.data = message_reader.bytes(component.data_length.value, "Data", "The data for the component.", function (bytes) {
-                                            return bytes.map(byte => ToHex(byte, null, packet_value.endianness === "big")).join(" ");
-                                        });
+                                        switch (message.spawnid.value) {
+                                            case 0x00:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readShipStatusComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x01:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readMeetingHudComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x02:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readFollowerCameraComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x03:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readGameDataComponent(message_reader, component, true);
+                                                        break;
+                                                    case 0x01:
+                                                        readVoteBanSystemComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x04:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readPlayerControlComponent(message_reader, component, true);
+                                                        break;
+                                                    case 0x01:
+                                                        readPlayerPhysicsComponent(message_reader, component, true);
+                                                        break;
+                                                    case 0x02:
+                                                        readCustomNetworkTransform(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x05:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readShipStatusComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x06:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readShipStatusComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            case 0x07:
+                                                switch (i) {
+                                                    case 0x00:
+                                                        readShipStatusComponent(message_reader, component, true);
+                                                        break;
+                                                }
+                                                break;
+                                            default:
+                                                component.data = message_reader.bytes(component.data_length.value, "Data", "The data for the component.");
+                                                component.data.value = component.data.value.map(val => {
+                                                    return ToHex(val, null);
+                                                }).join(" ");
+                                                break;
+                                        }
+
+                                        message.components.value.push(component);
                                     }
                                     break;
                                 case 0x05:

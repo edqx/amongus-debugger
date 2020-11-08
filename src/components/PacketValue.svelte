@@ -76,6 +76,8 @@
         <span class="{packet_value.type}">
             {#if packet_value.type === "bitfield"}
                 {packet_value.value.toString(2)}
+            {:else if packet_value.type === "bool"}
+                {packet_value.value ? "true" : "false"}
             {:else}
                 {packet_value.value}
             {/if}
