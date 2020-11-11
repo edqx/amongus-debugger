@@ -210,9 +210,7 @@ function readPlayerDataFlags(reader) {
 
 function readPlayerData(reader) {
     const player = {};
-    player.length = reader.uint16LE("Player length", "The length of player data.");
     player.playerId = reader.uint8("Player ID", "The player's player ID.");
-    const player_start = reader.offset;
     player.name = reader.string("Name", "The player's name.");
     player.colour = reader.uint8("Colour", "The player's colour,");
     player.hat = reader.packed("Hat", "The player's hat.");
@@ -227,8 +225,8 @@ function readPlayerData(reader) {
         value: [],
         endianness: null,
         startpos: reader.offset,
-        size: (player_start + player.length.value) - reader.offset,
-        slice: reader.slice(reader.offset, (player_start + player.length.value) - reader.offset).buffer,
+        size: 0,
+        slice: reader.slice(reader.offset, 0).buffer,
         warnings: []
     }
 
