@@ -15,7 +15,7 @@ function readGameOptions(reader, search) {
         name: "Game options",
         description: "The game settings for creation, syncing or searching.",
         value: {},
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: length.value,
         slice: reader.slice(reader.offset, length.value).buffer,
@@ -95,7 +95,7 @@ function readVoteState(reader, i) {
         description: "The player ID of the player.",
         value: i,
         type: "uint8",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -107,7 +107,7 @@ function readVoteState(reader, i) {
         description: "The player ID of who the player voted for.",
         value: (byte & 0xF) - 1,
         type: "uint8",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -120,7 +120,7 @@ function readVoteState(reader, i) {
         description: "Whether or not the player started the meeting.",
         value: (byte & 0x0b10000) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -132,7 +132,7 @@ function readVoteState(reader, i) {
         description: "Whether or not the player has voted.",
         value: (byte & 0x0b100000) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -144,7 +144,7 @@ function readVoteState(reader, i) {
         description: "Whether or not the player is dead.",
         value: (byte & 0x0b1000000) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -155,40 +155,50 @@ function readVoteState(reader, i) {
 }
 
 function readPlayerDataFlags(reader) {
-    const flags = {};
+    const flags = {
+        name: "Flags",
+        description: "Player flags.",
+        value: {},
+        type: "byte",
+        endianness: null,
+        startpos: reader.offset,
+        size: 1,
+        slice: reader.slice(reader.offset, 1).buffer,
+        warnings: []
+    };
 
     const byte = reader.byte();
 
-    flags.reported = {
+    flags.value.reported = {
         name: "Disconnected?",
         description: "Whether or not the player has disconnected.",
         value: (byte & 0b1) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
         warnings: []
     }
 
-    flags.imposter = {
+    flags.value.imposter = {
         name: "Imposter?",
         description: "Whether or not the player is an imposter.",
         value: (byte & 0b10) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
         warnings: []
     }
 
-    flags.dead = {
+    flags.value.dead = {
         name: "Dead?",
         description: "Whether or not the player is dead.",
         value: (byte & 0b100) !== 0,
         type: "bool",
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: 1,
         slice: reader.slice(reader.offset, 1).buffer,
@@ -215,7 +225,7 @@ function readPlayerData(reader) {
         name: "Tasks",
         description: "The tasks for the player.",
         value: [],
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: (player_start + player.length.value) - reader.offset,
         slice: reader.slice(reader.offset, (player_start + player.length.value) - reader.offset).buffer,
@@ -241,7 +251,7 @@ function readMeetingHudComponent(reader, component, spawn) {
         name: "Components",
         description: "The components for the object being spawned.",
         value: [],
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: reader.end - reader.offset,
         slice: reader.slice(reader.offset).buffer,
@@ -272,7 +282,7 @@ function readGameDataComponent(reader, component, spawn) {
         name: "Players",
         description: "The players in the game data.",
         value: [],
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: reader.end - reader.offset,
         slice: reader.slice(reader.offset).buffer,
@@ -291,7 +301,7 @@ function readVoteBanSystemComponent(reader, component, spawn) {
         name: "Voted",
         description: "All players that have been voted.",
         value: [],
-        edianness: null,
+        endianness: null,
         startpos: reader.offset,
         size: reader.end - reader.offset,
         slice: reader.slice(reader.offset).buffer,
@@ -308,7 +318,7 @@ function readVoteBanSystemComponent(reader, component, spawn) {
             name: "Votes",
             description: "All players that have voted this player.",
             value: [],
-            edianness: null,
+            endianness: null,
             startpos: reader.offset,
             size: 3,
             slice: reader.slice(reader.offset, 3).buffer,
@@ -363,7 +373,7 @@ export default function readPacket(buffer, bound) {
                 name: "Payloads",
                 description: "The payloads in the packet.",
                 value: [],
-                edianness: null,
+                endianness: null,
                 startpos: packet_reader.offset,
                 size: packet_reader.buffer.byteLength - 2,
                 slice: packet_reader.slice(packet_reader.offset).buffer,
@@ -445,7 +455,7 @@ export default function readPacket(buffer, bound) {
                             name: "Messages",
                             description: "The messages in the game data.",
                             value: [],
-                            edianness: null,
+                            endianness: null,
                             startpos: payload_reader.offset,
                             size: payload_reader.left,
                             slice: payload_reader.slice(payload_reader.offset).buffer,
@@ -487,7 +497,7 @@ export default function readPacket(buffer, bound) {
                                                 name: "Imposters",
                                                 description: "The imposters that were set.",
                                                 value: [],
-                                                edianness: null,
+                                                endianness: null,
                                                 startpos: message_reader.offset,
                                                 size: num_infected,
                                                 slice: message_reader.slice(message_reader.offset, num_infected).buffer,
@@ -566,7 +576,7 @@ export default function readPacket(buffer, bound) {
                                                 name: "States",
                                                 description: "The player vote states.",
                                                 value: [],
-                                                edianness: null,
+                                                endianness: null,
                                                 startpos: message_reader.offset,
                                                 size: num_states,
                                                 slice: message_reader.slice(message_reader.offset, num_states).buffer,
@@ -608,7 +618,7 @@ export default function readPacket(buffer, bound) {
                                                 name: "Players",
                                                 description: "The game data for each player being updated.",
                                                 value: [],
-                                                edianness: null,
+                                                endianness: null,
                                                 startpos: message_reader.offset,
                                                 size: 1,
                                                 slice: message_reader.slice(message_reader.offset, 1).buffer,
@@ -616,7 +626,7 @@ export default function readPacket(buffer, bound) {
                                             }
 
                                             while (message_reader.left) {
-                                                message.players.value.push(readPlayerData(reader));
+                                                message.players.value.push(readPlayerData(message_reader));
                                             }
                                             break;
                                     }
@@ -640,7 +650,7 @@ export default function readPacket(buffer, bound) {
                                         name: "Components",
                                         description: "The components for the object being spawned.",
                                         value: [],
-                                        edianness: null,
+                                        endianness: null,
                                         startpos: message_reader.offset,
                                         size: message_reader.end - message_reader.offset,
                                         slice: message_reader.slice(message_reader.offset).buffer,
@@ -759,7 +769,7 @@ export default function readPacket(buffer, bound) {
                             name: "Clients",
                             description: "The clients connected to the game, excluding the client ID that joined.",
                             value: [],
-                            edianness: null,
+                            endianness: null,
                             startpos: payload_reader.offset,
                             size: payload_reader.left,
                             slice: payload_reader.slice(payload_reader.offset).buffer,
@@ -779,8 +789,12 @@ export default function readPacket(buffer, bound) {
                         break;
                     case 0x0a:
                         payload.code = payload_reader.int32LE("Game code", "The code for the game being altered.", Int2Code);
-                        payload.tag = payload_reader.packed("Alter game tag", "The tag for the alter game, i.e what is being changed.", e.alter_tags);
-                        payload.is_public = payload_reader.bool("Is public?", "Whether or not the game is being made public or not.");
+                        payload.tag = payload_reader.uint8("Alter game tag", "The tag for the alter game, i.e what is being changed.", e.alter_tags);
+                        switch (e.alter_tags) {
+                            case 0x01:
+                                payload.is_public = payload_reader.bool("Is public?", "Whether or not the game is being made public or not.");
+                                break;
+                        }
                         break;
                     case 0x0b:
                         if (bound === "server") {
@@ -804,7 +818,7 @@ export default function readPacket(buffer, bound) {
                             name: "Servers",
                             description: "A list of game datacenters for the connected region.",
                             value: [],
-                            edianness: null,
+                            endianness: null,
                             startpos: payload_reader.offset,
                             size: payload_reader.buffer.byteLength - 2,
                             slice: payload_reader.buffer,
@@ -843,7 +857,7 @@ export default function readPacket(buffer, bound) {
                                         name: "Games",
                                         description: "The games in the game list.",
                                         value: [],
-                                        edianness: null,
+                                        endianness: null,
                                         startpos: message_reader.offset,
                                         size: message_reader.buffer.byteLength - 2,
                                         slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
@@ -878,7 +892,7 @@ export default function readPacket(buffer, bound) {
                                         name: "Count",
                                         description: "The total number of games for each map.",
                                         value: {},
-                                        edianness: null,
+                                        endianness: null,
                                         startpos: message_reader.offset,
                                         size: message_reader.buffer.byteLength - 2,
                                         slice: message_reader.slice(message_reader.offset, message_length.value).buffer,
@@ -890,8 +904,8 @@ export default function readPacket(buffer, bound) {
                                     payload.count.value.polus = message_reader.uint32LE("Polus", "The total number of games on Polus.");
                                     break;
                             }
-                            break;
                         }
+                        break;
                 }
 
                 packet_reader.jump(payload_reader.end);
