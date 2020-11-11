@@ -78,7 +78,7 @@ function readGameOptions(reader, search) {
         options.taskBarUpdates = reader.bool("When the task bar should update, after a task, after meetings or never.", e.task_bar_updates);
     }
 
-    if (length !== reader.offset - start) {
+    if (length.value !== reader.offset - start) {
         options.value.length.warnings.push("Expected " + (reader.offset - start) + ", got " + length.value + ".");
     }
 
