@@ -222,7 +222,7 @@ function readPlayerData(reader) {
         warnings: []
     }
 
-    for (let i = 0; i < player.num_tasks.value; i++) {
+    for (let i = 0; i < num_tasks.value; i++) {
         const task = {};
         task.task_id = reader.packed("Task ID", "The task index of the player's tasks.");
         task.completed = reader.bool("Completed", "Whether or not the task has been completed.");
