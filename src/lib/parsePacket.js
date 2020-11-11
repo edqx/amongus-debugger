@@ -571,15 +571,15 @@ export default function readPacket(buffer, bound) {
                                         case 0x16:
                                             break;
                                         case 0x17:
-                                            message.num_states = message_reader.uint8("The number of vote states.");
+                                            const num_states = message_reader.uint8("The number of vote states.");
                                             message.states = {
                                                 name: "States",
                                                 description: "The player vote states.",
                                                 value: [],
                                                 endianness: null,
                                                 startpos: message_reader.offset,
-                                                size: num_states,
-                                                slice: message_reader.slice(message_reader.offset, num_states).buffer,
+                                                size: num_states.value,
+                                                slice: message_reader.slice(message_reader.offset, num_states.value).buffer,
                                                 warnings: []
                                             }
 
