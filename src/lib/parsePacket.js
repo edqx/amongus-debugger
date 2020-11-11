@@ -348,7 +348,7 @@ function readCustomNetworkTransform(reader, component, spawn) {
     
     component.xpos = reader.uint16LE("X position", "The X position of the player.");
     component.xpos.value = LerpValue(component.xpos.value / 65535, -40, 40);
-    component.xpos = reader.uint16LE("Y position", "The X position of the player.");
+    component.ypos = reader.uint16LE("Y position", "The X position of the player.");
     component.ypos.value = LerpValue(component.ypos.value / 65535, -40, 40);
     
     component.xvel = reader.uint16LE("X velocity", "The X velocity of the player.");
