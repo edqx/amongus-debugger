@@ -202,6 +202,7 @@ function readPlayerData(reader) {
     const player = {};
     player.length = reader.uint16LE("Player length", "The length of player data.");
     player.playerId = reader.uint8("Player ID", "The player's player ID.");
+    const player_start = reader.offset;
     player.name = reader.string("Name", "The player's name.");
     player.colour = reader.uint8("Colour", "The player's colour,");
     player.hat = reader.packed("Hat", "The player's hat.");
