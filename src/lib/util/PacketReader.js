@@ -616,12 +616,12 @@ export default class PacketReader {
      */
     string(name, description, display) {
         this.expect(0x01, "length of " + name);
-        const size = this.uint8(name + " length", null).value;
+        const size = this.packed(name + " length", null).value;
         this.expect(size, name);
         let value = "";
 
         for (let i = 0; i < size; i++) {
-            value += String.fromCharCode(this.packed(name + " character " + (i + 1), null).value);
+            value += String.fromCharCode(this.uint8(name + " character " + (i + 1), null).value);
         }
 
         const packetpos = {
