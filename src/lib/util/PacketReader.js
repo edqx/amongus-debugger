@@ -12,6 +12,10 @@
  * @property {any} value
  */
 
+function readUtf8String(bytes) {
+    return decodeURIComponent(Buffer.from(bytes.reduce((out, b) => (out + ("0" + (b & 0xff).toString(16)).slice(-2)), ""), "hex").toString("utf8"));
+}
+
 export default class PacketReader {
     /**
      * @param {Buffer} buffer 
@@ -620,9 +624,8 @@ export default class PacketReader {
         this.expect(size, name);
         let value = "";
 
-        for (let i = 0; i < size; i++) {
-            value += String.fromCharCode(this.uint8(name + " character " + (i + 1), null).value);
-        }
+        value = readUtf8String([...this.buffer.slice(this.offset, this.offset + size)]);
+        this.offset += size;
 
         const packetpos = {
             name,
