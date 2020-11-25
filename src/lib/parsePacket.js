@@ -386,6 +386,8 @@ export default function readPacket(buffer, bound) {
                 payload.tag = packet_reader.uint8("Payload tag", "The payload tag.", e.tags);
                 const payload_reader = packet_reader.slice(packet_reader.offset, payload_length.value);
 
+                payload.bound = packet.bound;
+
                 switch (payload.tag.value) {
                     case 0x00:
                         if (payload.bound === "client") {

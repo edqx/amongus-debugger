@@ -85,6 +85,8 @@
         if (selectedPacket >= workspace.packets.length) {
             selectedPacket--;
         }
+
+        workspace.save();
         
         onSelect();
     }
@@ -119,6 +121,20 @@
         selectedPacket = i;
     }
 
+    function shareURL(packet) {
+        const bytes = packet.format().replace(/ /g, "");
+        const share_inp = document.getElementsByClassName("share-hidden")[0];
+
+        if (share_inp) {
+            share_inp.value = location.origin + "/" + (serverbound ? "s" : "c") + bytes;
+
+            share_inp.select();
+            share_inp.setSelectionRange(0, 99999);
+
+            document.execCommand("copy");
+        }
+    }
+
     $: packetinput, serverbound, doRender();
 
     let selected_value = "";
@@ -136,6 +152,8 @@
         <div style="margin-top: 4px;">
             <input bind:checked={serverbound} on:change={updatePacket} id="serverbound" type="checkbox"/>Server bound?
             <button style="float:right;" class="not-good" on:click={() => deletePacket(selectedPacket)}>Delete</button>
+            <button style="float:right;margin-right: 4px;" class="good" on:click={shareURL(packet)}>Share</button>
+            <input class="share-hidden"/>
         </div>
         <div class="parsed-packet">
             {#if parsed || error}
@@ -213,5 +231,10 @@
     .parsed-packet {
         margin-top: 2%;
         text-align: left;
+    }
+
+    .share-hidden {
+        position: absolute;
+        left: -9999px;
     }
 </style>
