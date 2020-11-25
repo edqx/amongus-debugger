@@ -126,7 +126,7 @@
         const share_inp = document.getElementsByClassName("share-hidden")[0];
 
         if (share_inp) {
-            share_inp.value = location.origin + "/" + encodeURIComponent(packet.name) + "/" + encodeURIComponent((serverbound ? "s" : "c") + bytes);
+            share_inp.value = location.origin + (packet.name ? "/" + encodeURIComponent(packet.name) : "") + "/" + encodeURIComponent((serverbound ? "s" : "c") + bytes);
 
             share_inp.select();
             share_inp.setSelectionRange(0, 99999);
