@@ -497,13 +497,13 @@ export default function readPacket(buffer, bound) {
                                                 value: [],
                                                 endianness: null,
                                                 startpos: message_reader.offset,
-                                                size: num_infected,
+                                                size: num_infected.value,
                                                 slice: message_reader.slice(message_reader.offset, num_infected).buffer,
                                                 warnings: []
                                             }
 
-                                            for (let i = 0; i < num_infected; i++) {
-                                                const playerid = payload_reader.uint8("Player ID", "A player ID of a selected imposter.");
+                                            for (let i = 0; i < num_infected.value; i++) {
+                                                const playerid = message_reader.uint8("Player ID", "A player ID of a selected imposter.");
                     
                                                 message.infected.value.push({ playerid });
                                             }
