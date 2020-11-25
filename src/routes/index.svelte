@@ -126,7 +126,7 @@
         const share_inp = document.getElementsByClassName("share-hidden")[0];
 
         if (share_inp) {
-            share_inp.value = location.origin + "/" + (serverbound ? "s" : "c") + bytes;
+            share_inp.value = location.origin + "/" + packet.name + "/" + (serverbound ? "s" : "c") + bytes;
 
             share_inp.select();
             share_inp.setSelectionRange(0, 99999);
@@ -136,8 +136,6 @@
     }
 
     $: packetinput, serverbound, doRender();
-
-    let selected_value = "";
 </script>
 
 <span class="title">Among Us Debugger</span>
