@@ -132,6 +132,10 @@
     function setPackedIntBytes() {
         let bytes = [];
         let val = packedint;
+		
+		if (val < 0) {
+			val = val >>> 0;
+		}
 
         do {
             let b = val & 0b11111111;
