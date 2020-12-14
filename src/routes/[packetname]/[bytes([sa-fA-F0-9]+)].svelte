@@ -8,7 +8,7 @@
 
 <script>
     import { goto } from "@sapper/app"
-    import { Packet, getWorkspace } from "../../../lib/Workspace.js"
+    import { Packet, getWorkspace } from "../../lib/Workspace.js"
 
     export let bytes;
     export let packetname;
