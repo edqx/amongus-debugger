@@ -606,10 +606,10 @@ export default class PacketReader {
             value,
             type: "packed",
             endianness: null,
-            startpos: this.base + this.offset,
-            size: size,
+            startpos: this.base + this.offset - size - 1,
+            size: size + 1,
             collapsed: false,
-            slice: this.slice(this.offset - size - 1, size + 1).buffer,
+            slice: this.buffer.slice(this.offset - size - 1, this.offset),
             warnings: []
         }
     }
