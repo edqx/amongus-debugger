@@ -181,6 +181,58 @@
     let lerpy = 0;
 
     setLerped();
+
+    let text = "";
+    let formatted = "";
+
+    function formatText() {
+        const parts = [];
+
+        let last_char;
+        let bracket_col = "";
+        let collection = "";
+        let clr;
+        for (let i = 0; i < text.length; i++) {
+            if (text[i] === "[") {
+                if (last_char !== "[" && text[i + 1] !== "[") {
+                    bracket_col = text[i];
+                } else {
+                    if (text[i + 1] !== "[") collection += text[i];
+                }
+            } else {
+                if (bracket_col) {
+                    bracket_col += text[i];
+                }
+
+                if (text[i] === "]") {
+                    if (last_char === "[") {
+                        collection += "</span>".repeat(parts.filter(part => part.indexOf("<span>")).length);
+                        parts.push(collection);
+                        collection = "";
+                        bracket_col = "";
+                    } else {
+                        if (bracket_col[1] === "h") {
+                            clr = "07f7ffff;cursor:pointer";
+                        } else {
+                            clr = bracket_col.slice(1, bracket_col.length - 1).padStart(8, "0");
+                        }
+                        
+                        parts.push(collection);
+                        collection = "<span style=\"color: #" + clr + "\">";
+                        bracket_col = "";
+                    }
+                } else {
+                    if (!bracket_col) collection += text[i];
+                }
+            }
+
+            last_char = text[i];
+        }
+
+        parts.push(collection);
+
+        formatted = parts.join("");
+    }
 </script>
 
 <span class="title">Among Us Tools</span>
@@ -239,6 +291,12 @@
         <input placeholder="X" type="number" bind:value={lerpx} on:input={setLerp}/><br>
         <input placeholder="Y" type="number" bind:value={lerpy} on:input={setLerp}/><br>
     </div>
+    <div class="conversion">
+        <span>Text Formatter</span><br>
+        <textarea bind:value={text} on:input={formatText}></textarea>
+        <span>Formatted</span><br>
+        {@html formatted}
+    </div>
 </div>
 
 <style>
@@ -270,5 +328,10 @@
 
     input {
         margin-top: 4px;
+    }
+
+    textarea {
+        width: 100%;
+        resize: vertical;
     }
 </style>

@@ -620,6 +620,7 @@ export default class PacketReader {
      */
     string(name, description, display) {
         this.expect(0x01, "length of " + name);
+        const start = this.offset;
         const size = this.packed(name + " length", null).value;
         this.expect(size, name);
         let value = "";
@@ -637,7 +638,7 @@ export default class PacketReader {
             startpos: this.offset,
             size: size,
             collapsed: false,
-            slice: this.slice(this.offset - size - 1, size + 1).buffer,
+            slice: this.buffer.slice(start, this.offset - start),
             warnings: []
         }
 

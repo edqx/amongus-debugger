@@ -27,8 +27,27 @@
             copied = null;
         }, 1000);
     }
-
+    
     $: hexstr = [...packet_value.slice].map(byte => ToHex(byte, null, packet_value.endianness === "big")).join(" ");
+
+    function copyHex(e) {
+        e.stopPropagation();
+        
+        var inp = document.createElement("input");
+        document.body.appendChild(inp);
+        inp.value = hexstr.replace(/ /g, "");
+        inp.select();
+
+        document.execCommand("copy", false);
+
+        inp.remove();
+
+        clearTimeout(copied);
+        copied = setTimeout(function () {
+            clearTimeout(copied);
+            copied = null;
+        }, 1000);
+    }
 
     $: warnings = packet_value.warnings.length ? packet_value.warnings.length + " warning" + (packet_value.warnings.length === 1 ? "" : "s") + ":\n" + packet_value.warnings.map((warning, i) => (i + 1) + ". " + warning).join("\n") : null;
 </script>
@@ -39,7 +58,6 @@
             <span class="warning" title={warnings}>⚠</span>
         {/if}
         <span class="valname">{packet_value.name}</span>:
-        <span class="{packet_value.type}">{packet_value.value.length}</span>
     </div>
     <div class="packet-group">
         {#each packet_value.value as value_item, index}
@@ -69,6 +87,7 @@
     </div>
 {:else}
     <div class="packet-value" on:click={copyValue} title={packet_value.description}>
+        <div class="hex-cont"><span class="annotate-hex" on:click={copyHex}>{hexstr}</span></div>
         {#if packet_value.warnings.length}
             <span class="warning" title={warnings}>⚠</span>
         {/if}
@@ -82,7 +101,7 @@
                 {packet_value.value}
             {/if}
         </span>
-        (<span class="valtype">{packet_value.type}</span>)
+        (<span class="valtype">{packet_value.type}{#if packet_value.endianness === "big"}BE{/if}</span>)
         {#if typeof packet_value.display === "function"}
             <span class="comment">// {packet_value.display(packet_value.value)}</span>
         {:else if typeof packet_value.display === "object"}
@@ -99,11 +118,26 @@
         margin-left: 24px;
     }
 
+    .hex-cont {
+        position: relative;
+        float: right;
+        right: 102%;
+    }
+    
+    .annotate-hex {
+        color: #292a2d;
+    }
+
+    .annotate-hex:hover {
+        background-color: #5d7de4;
+    }
+
     .packet-value {
         border-left: 1px solid #2c3134;
         padding: 6px;
         margin: 2px;
         cursor: pointer;
+        position: relative;
     }
 
     .packet-value:hover {
