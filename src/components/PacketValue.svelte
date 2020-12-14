@@ -1,5 +1,9 @@
 <script>
+    import { createEventDispatcher } from "svelte"
+
     import { ToHex } from "../lib/util/ToHex.js"
+
+    const dispatch = createEventDispatcher();
 
     export let parent_keyname;
     export let object_keyname;
@@ -49,6 +53,15 @@
         }, 1000);
     }
 
+    function selHex(ev) {
+        ev.stopPropagation();
+        
+        dispatch("hexsel", {
+            start: packet_value.startpos,
+            end: packet_value.startpos + packet_value.size
+        });
+    }
+
     $: warnings = packet_value.warnings.length ? packet_value.warnings.length + " warning" + (packet_value.warnings.length === 1 ? "" : "s") + ":\n" + packet_value.warnings.map((warning, i) => (i + 1) + ". " + warning).join("\n") : null;
 </script>
 
@@ -65,7 +78,7 @@
             <div class="packet-group">
                 {#each Object.entries(value_item) as [keyname, packet_value]}
                     {#if typeof packet_value === "object"}
-                        <svelte:self parent_keyname={keypath} object_keyname={keyname} {packet_value} depth={depth + 1} {index}/>
+                        <svelte:self on:hexsel parent_keyname={keypath} object_keyname={keyname} {packet_value} depth={depth + 1} {index}/>
                     {/if}
                 {/each}
             </div>
@@ -87,7 +100,7 @@
     </div>
 {:else}
     <div class="packet-value" on:click={copyValue} title={packet_value.description}>
-        <div class="hex-cont"><span class="annotate-hex" on:click={copyHex}>{hexstr}</span></div>
+        <div class="hex-cont"><span class="annotate-hex" on:click={selHex} title="Click to see in editor.">{hexstr}</span></div>
         {#if packet_value.warnings.length}
             <span class="warning" title={warnings}>⚠</span>
         {/if}

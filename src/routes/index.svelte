@@ -142,6 +142,35 @@
         }
     }
 
+    // https://stackoverflow.com/questions/646611/programmatically-selecting-partial-text-in-an-input-field
+    function createSelection(field, start, end) {
+        if (field.createTextRange) {
+            var selRange = field.createTextRange();
+            selRange.collapse(true);
+            selRange.moveStart("character", start);
+            selRange.moveEnd("character", end);
+            selRange.select();
+            field.focus();
+        } else if (field.setSelectionRange) {
+            field.focus();
+            field.setSelectionRange(start, end);
+        } else if (typeof field.selectionStart != "undefined") {
+            field.selectionStart = start;
+            field.selectionEnd = end;
+            field.focus();
+        }
+    }
+
+    let packet_data_input;
+
+    function selectHex({ detail: ev }) {
+        console.log("sel", ev);
+
+        if (packet_data_input) {
+            createSelection(packet_data_input, ev.start * 3, ev.end * 3 - 1);
+        }
+    }
+
     $: packetinput, serverbound, doRender();
 </script>
 
@@ -153,7 +182,7 @@
 <div class="center-wrapper">
     <div class="main-editor">
         <input class="packet-name" bind:value={packetname} on:change={updatePacket} spellcheck="false" placeholder="Packet name"/>
-        <textarea class="packet-input" bind:value={packetinput} on:change={updatePacket} spellcheck="false" placeholder="Packet data"></textarea>
+        <textarea class="packet-input" bind:this={packet_data_input} bind:value={packetinput} on:change={updatePacket} spellcheck="false" placeholder="Packet data"></textarea>
         <div style="margin-top: 4px;">
             <input bind:checked={serverbound} on:change={updatePacket} id="serverbound" type="checkbox"/>Server bound?
             <button style="float:right;" class="not-good" on:click={() => deletePacket(selectedPacket)}>Delete</button>
@@ -167,7 +196,7 @@
                 {:else}
                     {#each Object.entries(parsed) as [keyname, packet_value]}
                         {#if typeof packet_value === "object"}
-                            <PacketValue parent_keyname="packet" object_keyname={keyname} {packet_value}/>
+                            <PacketValue on:hexsel={selectHex} parent_keyname="packet" object_keyname={keyname} {packet_value}/>
                         {/if}
                     {/each}
                 {/if}
@@ -208,6 +237,8 @@
 
     .main-editor {
         display: flex;
+        position: sticky;
+        top: 0;
         flex-direction: column;
         align-items: stretch;
         margin-right: 10%;
