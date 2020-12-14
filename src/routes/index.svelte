@@ -5,6 +5,8 @@
     import parsePacket from "../lib/parsePacket.js"
     import { Packet, getWorkspace } from "../lib/Workspace.js"
 
+    import { dbSharePacket, dbGetPacket } from "../lib/firebase.js"
+
     import WorkspacePacket from "../components/Packet.svelte"
     import PacketValue from "../components/PacketValue.svelte" 
 
@@ -121,17 +123,22 @@
         selectedPacket = i;
     }
 
-    function shareURL(packet) {
-        const bytes = packet.format().replace(/ /g, "");
-        const share_inp = document.getElementsByClassName("share-hidden")[0];
+    async function shareURL(packet) {
+        try {
+            const bytes = packet.format().replace(/ /g, "");
+            const id = await dbSharePacket(packet.name, bytes, serverbound);
+            const share_inp = document.getElementsByClassName("share-hidden")[0];
 
-        if (share_inp) {
-            share_inp.value = location.origin + (packet.name ? "/" + encodeURIComponent(packet.name) : "") + "/" + encodeURIComponent((serverbound ? "s" : "c") + bytes);
+            if (share_inp) {
+                share_inp.value = location.origin + "/" + id;
 
-            share_inp.select();
-            share_inp.setSelectionRange(0, 99999);
+                share_inp.select();
+                share_inp.setSelectionRange(0, 99999);
 
-            document.execCommand("copy");
+                document.execCommand("copy");
+            }
+        } catch (e) {
+            
         }
     }
 

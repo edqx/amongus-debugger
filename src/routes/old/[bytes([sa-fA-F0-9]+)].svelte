@@ -1,8 +1,8 @@
 <script context="module">
     export async function preload(page) {
-        const { packetname, bytes } = page.params;
+        const { bytes } = page.params;
 
-        return { packetname, bytes };
+        return { bytes };
     }
 </script>
 
@@ -11,12 +11,11 @@
     import { Packet, getWorkspace } from "../../lib/Workspace.js"
 
     export let bytes;
-    export let packetname;
     
     const workspace = getWorkspace();
 
     workspace.packets.push(new Packet(workspace, {
-        name: packetname,
+        name: "",
         data: (bytes.slice(1).match(/[^\s]{1,2}/g) || []).map(num => parseInt(num, 16)),
         serverbound: bytes[0] === "s"
     }));
