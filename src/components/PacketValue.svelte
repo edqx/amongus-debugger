@@ -94,7 +94,7 @@
     <div class="packet-group">
         {#each Object.entries(packet_value.value) as [keyname, packet_value]}
             {#if typeof packet_value === "object"}
-                <svelte:self parent_keyname={object_keyname} object_keyname={keyname} {packet_value} depth={depth + 1}/>
+                <svelte:self on:hexsel parent_keyname={object_keyname} object_keyname={keyname} {packet_value} depth={depth + 1}/>
             {/if}
         {/each}
     </div>
