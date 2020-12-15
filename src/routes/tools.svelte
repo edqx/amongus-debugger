@@ -146,7 +146,7 @@
 
             bytes.push(b);
 
-            val >>= 7;
+            val >>>= 7;
         } while (val > 0);
         
         packedbytes = bytes.map(byte => hex(byte)).join(" ");
