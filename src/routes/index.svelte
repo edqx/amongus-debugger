@@ -58,8 +58,6 @@
     let onversion = 0;
 
     function timeTravel(e) {
-        console.log(e);
-        
         if (e.code === "KeyZ" && e.ctrlKey) {
             e.preventDefault();
 
@@ -90,7 +88,6 @@
     }
 
     function updatePacket() {
-        console.log("update.");
         packet.name = packetname;
         packet.data = (packetinput.match(/[^\s]{1,2}/g) || []).map(num => parseInt(num, 16));
         packet.serverbound = serverbound;
@@ -153,16 +150,12 @@
             } catch (e) {
                 error = e;
                 parsed = "";
-
-                console.log(e);
             }
 
             packetinput = bytes;
             if (packet_data_input) {
                 packet_data_input.value = bytes;
                 createSelection(packet_data_input, before.length, before.length);
-                console.log(packet_data_input.value);
-                console.log(before.length);
             }
         } else {
             error = "";
