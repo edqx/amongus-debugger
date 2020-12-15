@@ -5,10 +5,10 @@
     import parsePacket from "../lib/parsePacket.js"
     import { Packet, getWorkspace } from "../lib/Workspace.js"
 
-    import { dbSharePacket, dbGetPacket } from "../lib/firebase.js"
+    import { dbSharePacket } from "../lib/firebase.js"
 
     import WorkspacePacket from "../components/Packet.svelte"
-    import PacketValue from "../components/PacketValue.svelte" 
+    import PacketValue from "../components/PacketValue.svelte"
 
     const workspace = getWorkspace();
     let selectedPacket = parseInt(localStorage.getItem("selected")) || 0;
@@ -26,6 +26,8 @@
         serverbound = packet.serverbound;
 
         localStorage.setItem("selected", selectedPacket);
+        versions.splice(0);
+        recordVersion();
     }
 
     function onKey(ev) {
@@ -51,8 +53,44 @@
     onDestroy(function () {
         document.removeEventListener("keydown", onKey);
     });
+    
+    const versions = [];
+    let onversion = 0;
+
+    function timeTravel(e) {
+        console.log(e);
+        
+        if (e.code === "KeyZ" && e.ctrlKey) {
+            e.preventDefault();
+
+            if (versions.length && onversion > 0) {
+                onversion--;
+                packetinput = versions[onversion];
+            }
+        } else if (e.code === "KeyY" && e.ctrlKey) {
+            e.preventDefault();
+
+            if (onversion < versions.length - 1) {
+                onversion++;
+                packetinput = versions[onversion];
+            }
+        }
+    }
+
+    function recordVersion() {
+        versions.splice(onversion + 1);
+        versions.push(packetinput);
+        onversion = versions.length - 1;
+    }
+
+    function selectPacket(i) {
+        selectedPacket = i;
+        versions.splice(0);
+        recordVersion();
+    }
 
     function updatePacket() {
+        console.log("update.");
         packet.name = packetname;
         packet.data = (packetinput.match(/[^\s]{1,2}/g) || []).map(num => parseInt(num, 16));
         packet.serverbound = serverbound;
@@ -97,10 +135,17 @@
 
     let parsed = "";
     let error = "";
+    
+    let packet_data_input;
 
-    function doRender() {
+    function doRender() { 
         if (packetinput.length) {
-            const bytes = packetinput.replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g).join(" ");
+            let curpos;
+            if (packet_data_input) {
+                curpos = packet_data_input.selectionStart;
+            }
+            const before = (packetinput.substring(0, curpos).replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ");
+            const bytes = (packetinput.replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ");
 
             try {
                 parsed = parsePacket(toBuffer(bytes), serverbound ? "server" : "client");
@@ -113,14 +158,16 @@
             }
 
             packetinput = bytes;
+            if (packet_data_input) {
+                packet_data_input.value = bytes;
+                createSelection(packet_data_input, before.length, before.length);
+                console.log(packet_data_input.value);
+                console.log(before.length);
+            }
         } else {
             error = "";
             parsed = "";
         }
-    }
-
-    function selectPacket(i) {
-        selectedPacket = i;
     }
 
     async function shareURL(packet) {
@@ -161,11 +208,7 @@
         }
     }
 
-    let packet_data_input;
-
     function selectHex({ detail: ev }) {
-        console.log("sel", ev);
-
         if (packet_data_input) {
             createSelection(packet_data_input, ev.start * 3, ev.end * 3 - 1);
         }
@@ -182,7 +225,7 @@
 <div class="center-wrapper">
     <div class="main-editor">
         <input class="packet-name" bind:value={packetname} on:change={updatePacket} spellcheck="false" placeholder="Packet name"/>
-        <textarea class="packet-input" bind:this={packet_data_input} bind:value={packetinput} on:change={updatePacket} spellcheck="false" placeholder="Packet data"></textarea>
+        <textarea class="packet-input" bind:this={packet_data_input} bind:value={packetinput} on:change={updatePacket} on:input={recordVersion} on:keydown={timeTravel} spellcheck="false" placeholder="Packet data"></textarea>
         <div style="margin-top: 4px;">
             <input bind:checked={serverbound} on:change={updatePacket} id="serverbound" type="checkbox"/>Server bound?
             <button style="float:right;" class="not-good" on:click={() => deletePacket(selectedPacket)}>Delete</button>
