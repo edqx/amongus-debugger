@@ -808,6 +808,7 @@ export default function readPacket(buffer, bound) {
                         break;
                     case 0x0d:
                         payload.ipaddr = payload_reader.bytes(4, "IP address", "The IP address of the new game datacenter to connect to.");
+                        payload.ipaddr.value = payload.ipaddr.value.join(".");
                         payload.port = payload_reader.uint16LE("Port", "The port of the new game datacenter to connect to.");
                         break;
                     case 0x0e:
