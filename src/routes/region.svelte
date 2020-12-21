@@ -2,7 +2,7 @@
     import { flip } from "svelte/animate";
 	import { quadOut } from 'svelte/easing';
 
-    import Buffer from "buffer/"
+    import { Buffer } from "buffer/"
     import RegionServer from "../components/RegionServer.svelte";
 
     const IPV4_VALIDATE = /^((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))$/;
@@ -78,7 +78,7 @@
         );
 
         let cursor = 0;
-        cursor = buf.writeInt32LE(1, cursor);
+        cursor = buf.writeInt32LE(0, cursor);
         cursor = write_packed_int(buf, region.name.length, cursor);
         cursor += buf.write(region.name, cursor);
         cursor = write_packed_int(buf, region.pingip.length, cursor);
@@ -91,15 +91,23 @@
             cursor = write_packed_int(buf, server.name.length, cursor);
             cursor += buf.write(server.name, cursor);
             
-            server.ip.split(".").map(_ => parseInt(_)).forEach(byte => {
-                cursor = buf.writeUInt8(byte, cursor);
-            });
+            const bytes = server.ip.split(".").map(_ => parseInt(_));
+            cursor = buf.writeUInt8(bytes[0] || 0, cursor);
+            cursor = buf.writeUInt8(bytes[1] || 0, cursor);
+            cursor = buf.writeUInt8(bytes[2] || 0, cursor);
+            cursor = buf.writeUInt8(bytes[3] || 0, cursor);
+            
             cursor = buf.writeInt16LE(server.port, cursor);
             cursor = buf.writeInt32LE(0, cursor);
         }
         
-        var element = document.createElement("a");
-        element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(buf.toString("utf8")));
+        const element = document.createElement("a");
+        const blob = new Blob([buf]);
+        const url = window.URL.createObjectURL(blob);
+
+        console.log(url);
+
+        element.setAttribute("href", url);
         element.setAttribute("download", "regionInfo.dat");
 
         element.style.display = "none";
