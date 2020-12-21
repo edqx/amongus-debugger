@@ -164,8 +164,8 @@
     }
 
     function setLerped() {
-        lerpx = UnlerpValue(lerpedx, lerpmin, lerpmax).toFixed(3);
-        lerpy = UnlerpValue(lerpedy, lerpmin, lerpmax).toFixed(3);
+        lerpx = UnlerpValue(lerpedx, lerpmin, lerpmax).toFixed(5);
+        lerpy = UnlerpValue(lerpedy, lerpmin, lerpmax).toFixed(5);
     }
 
     function setLerp() {

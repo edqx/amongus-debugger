@@ -9,6 +9,9 @@
     <a href="/tools" class="navbar-item" class:selected={segment === "tools"}>
         Tools
     </a>
+    <a href="/region" class="navbar-item" class:selected={segment === "region"}>
+        Region Editor
+    </a>
     <a href="https://github.com/edqx/amongus-protocol" class="navbar-item">
         GitHub
     </a>
