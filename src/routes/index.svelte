@@ -179,7 +179,7 @@
     async function shareURL(packet) {
         try {
             const bytes = packet.format().replace(/ /g, "");
-            const id = await dbSharePacket(packet.name, bytes, serverbound);
+            const id = await dbSharePacket(packet.name, bytes, serverbound, packet.type);
             const share_inp = document.getElementsByClassName("share-hidden")[0];
 
             if (share_inp) {
@@ -191,7 +191,7 @@
                 document.execCommand("copy");
             }
         } catch (e) {
-            
+            console.log("Error sharing packet", e);
         }
     }
 

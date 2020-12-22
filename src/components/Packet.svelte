@@ -6,6 +6,7 @@
 
     import { createEventDispatcher } from "svelte"
 import { PacketTypes } from "../lib/Workspace.js";
+import parseAnnouncement from "../lib/parseAnnouncement.js";
 
     export let packet;
     export let i;
@@ -30,7 +31,15 @@ import { PacketTypes } from "../lib/Workspace.js";
 
         if (packet.data.length) {
             try {
-                parsed = parsePacket(Buffer.from(packet.data), packet.serverbound ? "server" : "client");
+                switch (packet.type) {
+                    case 0:
+                        parsed = parsePacket(Buffer.from(packet.data), packet.serverbound ? "server" : "client");
+                        break;
+                    case 1:
+                        parsed = parseAnnouncement(Buffer.from(packet.data), packet.serverbound ? "server" : "client");
+                        break;
+                }
+                
                 error = "";
             } catch (e) {
                 error = e;

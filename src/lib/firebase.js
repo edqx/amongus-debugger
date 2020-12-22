@@ -21,7 +21,7 @@ if (globalThis.window) {
 const firestore = firebase.firestore();
 const col = firestore.collection("share");
 
-export async function dbSharePacket(name, data, serverbound) {
+export async function dbSharePacket(name, data, serverbound, type) {
     const ref = await col.add({
         name,
         data,
