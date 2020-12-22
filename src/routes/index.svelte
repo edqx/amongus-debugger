@@ -220,7 +220,7 @@
         }
     }
 
-    $: packetinput, serverbound, doRender();
+    $: packetinput, serverbound, packettype, doRender();
 </script>
 
 <span class="title">Among Us Debugger</span>

@@ -53,8 +53,7 @@ import { PacketTypes } from "../lib/Workspace.js";
             - {opcodes[parsed.opcode] || "Unknown"}
         {/if}
         <br>
-        <span>{PacketTypes[packet.type]}</span><br>
-        <span class="bound">{packet.serverbound ? "client -> server" : "server -> client"}</span>
+        <span class="bound">{packet.serverbound ? "client -> " + PacketTypes[packet.type] : PacketTypes[packet.type] + " -> client"}</span>
     </a>
 </div>
 

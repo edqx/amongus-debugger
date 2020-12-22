@@ -9,6 +9,7 @@
  * @property {Number} startpos
  * @property {Function|any} display
  * @property {Boolean} collapsed
+ * @property {Array<String>} warnings
  * @property {any} value
  */
 

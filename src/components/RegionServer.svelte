@@ -19,7 +19,7 @@
     <input bind:value={server.name} on:input placeholder="Server name"/>&nbsp;Server name<br>
     <input bind:value={server.ip} on:input placeholder="Server IP"/>&nbsp;IP<br>
     <input bind:value={server.port} on:input type="number"/>&nbsp;Port<br>
-    <input checked={selected === i} on:input on:change={() => selected = i} type="checkbox"/>&nbsp;Selected
+    <input checked={selected === i} on:input on:change={() => selected = i} type="radio" />&nbsp;Selected
 </div>
 
 <style>

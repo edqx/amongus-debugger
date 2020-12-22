@@ -12,7 +12,7 @@
     let region = load_region();
     let regionbytes = "";
 
-    regionbytes = serialise_region(region);
+    regionbytes = serialise_region(region).toString("hex").match(/[^\s]{1,2}/g).join(" ");
 
     function load_region() {
         const storage = localStorage.getItem("region");
@@ -42,7 +42,7 @@
     }
 
     function save_region() {
-        regionbytes = serialise_region(region);
+        regionbytes = serialise_region(region).toString("hex").match(/[^\s]{1,2}/g).join(" ");;
 
         localStorage.setItem("region", JSON.stringify(region));
     }
@@ -83,11 +83,11 @@
     }
 
     function download_region() {
+        const buf = serialise_region(region);
+
         const element = document.createElement("a");
         const blob = new Blob([buf]);
         const url = window.URL.createObjectURL(blob);
-
-        console.log(url);
 
         element.setAttribute("href", url);
         element.setAttribute("download", "regionInfo.dat");
@@ -116,7 +116,7 @@
         );
 
         let cursor = 0;
-        cursor = buf.writeInt32LE(region.selected, cursor);
+        cursor = buf.writeInt32LE(region.selected < 0 ? 0 : region.selected, cursor);
         cursor = write_packed_int(buf, region.name.length, cursor);
         cursor += buf.write(region.name, cursor);
         cursor = write_packed_int(buf, region.pingip.length, cursor);
@@ -139,7 +139,7 @@
             cursor = buf.writeInt32LE(0, cursor);
         }
 
-        return buf.toString("hex").match(/[^\s]{1,2}/g).join(" ");
+        return buf;
     }
 
     function deserialise_region(buf) {
@@ -209,6 +209,7 @@
 <div class="center-wrapper">
     <button class="good" on:click={download_region}>Export ➥</button>
     <button class="good" on:click={import_file}>Import file ⇓</button><br><br>
+    <span>After exporting the file, replace the regionInfo.dat in AppData\LocalLow\Innersloth\Among Us with the one you downloaded.</span><br><br>
     <textarea class="region-input" style="width: 80%" spellcheck="false" bind:value={regionbytes} on:input={() => deserialise_region(toBuffer(regionbytes))} placeholder="Region data"></textarea><br><br>
     <input bind:value={region.name} on:input={save_region} placeholder="Region name"/>&nbsp;Region name<br>
     <input bind:value={region.pingip} on:input={save_region} placeholder="Ping IP"/>&nbsp;Ping IP<br>
