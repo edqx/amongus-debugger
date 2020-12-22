@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from "svelte"
 
+    export let selected;
     export let servers;
     export let i;
 
@@ -17,7 +18,8 @@
     <h4>Server #{i + 1} <button class="not-good" on:click={() => dispatch("delete")}>-</button></h4>
     <input bind:value={server.name} on:input placeholder="Server name"/>&nbsp;Server name<br>
     <input bind:value={server.ip} on:input placeholder="Server IP"/>&nbsp;IP<br>
-    <input bind:value={server.port} on:input type="number"/>&nbsp;Port
+    <input bind:value={server.port} on:input type="number"/>&nbsp;Port<br>
+    <input checked={selected === i} on:input on:change={() => selected = i} type="checkbox"/>&nbsp;Selected
 </div>
 
 <style>
