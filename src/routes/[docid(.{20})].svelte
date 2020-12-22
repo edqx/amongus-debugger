@@ -36,7 +36,8 @@
             workspace.packets.push(new Packet(workspace, {
                 name: packet.name,
                 data: (packet.data.match(/[^\s]{1,2}/g) || []).map(num => parseInt(num, 16)),
-                serverbound: packet.serverbound
+                serverbound: packet.serverbound,
+                type: packet.type
             }));
 
             workspace.save();

@@ -67,6 +67,31 @@ input {
     color: #2e2e2e;
 }
 
+textarea {
+    border-radius: 8px;
+    background-color: #cccecc;
+    color: #2e2e2e;
+    outline: none;
+    border: none;
+    resize: vertical;
+    height: 175px;
+    font-family: "Andale Mono", monospace;
+    font-size: 12pt;
+    padding: 16px;
+}
+
+select {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    padding: 6px;
+    outline: none;
+    border: none;
+    font-family: "Andale Mono", monospace;
+    background-color: #cccecc;
+    color: #2e2e2e;
+}
+
 a {
     color: white;
     text-decoration: none;

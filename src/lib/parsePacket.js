@@ -355,7 +355,7 @@ function readCustomNetworkTransform(reader, component, spawn) {
     component.yvel.value = LerpValue(component.yvel.value / 65535, -40, 40);
 }
 
-export default function readPacket(buffer, bound) {
+export default function parsePacket(buffer, bound) {
     const packet_reader = new PacketReader(buffer);
 
     const packet = {};
@@ -626,6 +626,7 @@ export default function readPacket(buffer, bound) {
                                             }
 
                                             while (message_reader.left) {
+                                                message_reader.uint16LE();
                                                 message.players.value.push(readPlayerData(message_reader));
                                             }
                                             break;

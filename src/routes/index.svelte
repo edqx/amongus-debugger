@@ -3,18 +3,21 @@
 
     import toBuffer from "../lib/toBuffer.js"
     import parsePacket from "../lib/parsePacket.js"
-    import { Packet, getWorkspace } from "../lib/Workspace.js"
+    import parseAnnouncement from "../lib/parseAnnouncement.js"
+    import parseRegionInfo from "../lib/parseRegionInfo.js"
+    import { Packet, getWorkspace, PacketTypes } from "../lib/Workspace.js"
 
     import { dbSharePacket } from "../lib/firebase.js"
 
     import WorkspacePacket from "../components/Packet.svelte"
-    import PacketValue from "../components/PacketValue.svelte"
+    import PacketField from "../components/Field.svelte"
 
     const workspace = getWorkspace();
     let selectedPacket = parseInt(localStorage.getItem("selected")) || 0;
 
     let packet = null;
     let packetname = "";
+    let packettype = 0;
     let packetinput = "";
     let serverbound = false;
 
@@ -24,6 +27,7 @@
         packetname = packet.name;
         packetinput = packet.format();
         serverbound = packet.serverbound;
+        packettype = packet.type;
 
         localStorage.setItem("selected", selectedPacket);
         versions.splice(0);
@@ -91,6 +95,7 @@
         packet.name = packetname;
         packet.data = (packetinput.match(/[^\s]{1,2}/g) || []).map(num => parseInt(num, 16));
         packet.serverbound = serverbound;
+        packet.type = packettype;
 
         workspace.save();
         workspace.packets = workspace.packets;
@@ -141,11 +146,19 @@
             if (packet_data_input) {
                 curpos = packet_data_input.selectionStart;
             }
+            
             const before = (packetinput.substring(0, curpos).replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ");
             const bytes = (packetinput.replace(/[^a-fA-F0-9]/g, "").match(/[^\s]{1,2}/g) || []).join(" ");
 
             try {
-                parsed = parsePacket(toBuffer(bytes), serverbound ? "server" : "client");
+                switch (packettype) {
+                    case 0:
+                        parsed = parsePacket(toBuffer(bytes), serverbound ? "server" : "client");
+                        break;
+                    case 1:
+                        parsed = parseAnnouncement(toBuffer(bytes), serverbound ? "server" : "client");
+                        break;
+                }
                 error = "";
             } catch (e) {
                 error = e;
@@ -217,7 +230,14 @@
 <br><br>
 <div class="center-wrapper">
     <div class="main-editor">
-        <input class="packet-name" bind:value={packetname} on:change={updatePacket} spellcheck="false" placeholder="Packet name"/>
+        <div class="packet-name">
+            <input class="packet-name" bind:value={packetname} on:change={updatePacket} spellcheck="false" placeholder="Packet name"/>
+            <select class="packet-type" bind:value={packettype} on:blur={updatePacket} on:change={updatePacket}>
+                {#each PacketTypes as type, i}
+                    <option value={i}>{type}</option>
+                {/each}
+            </select>
+        </div>
         <textarea class="packet-input" bind:this={packet_data_input} bind:value={packetinput} on:change={updatePacket} on:input={recordVersion} on:keydown={timeTravel} spellcheck="false" placeholder="Packet data"></textarea>
         <div style="margin-top: 4px;">
             <input bind:checked={serverbound} on:change={updatePacket} id="serverbound" type="checkbox"/>Server bound?
@@ -232,7 +252,7 @@
                 {:else}
                     {#each Object.entries(parsed) as [keyname, packet_value]}
                         {#if typeof packet_value === "object"}
-                            <PacketValue on:hexsel={selectHex} parent_keyname="packet" object_keyname={keyname} {packet_value}/>
+                            <PacketField on:hexsel={selectHex} parent_keyname="packet" object_keyname={keyname} {packet_value}/>
                         {/if}
                     {/each}
                 {/if}
@@ -241,7 +261,7 @@
     </div>
     <div class="workspace-list">
         {#each workspace.packets as packet, i}
-            <WorkspacePacket selected={selectedPacket === i} {packet} packeti={i} on:select={() => selectPacket(i)} on:delete={() => deletePacket(i)}/>
+            <WorkspacePacket selected={selectedPacket === i} {packet} i={i} on:select={() => selectPacket(i)} on:delete={() => deletePacket(i)}/>
         {/each}
         <!-- svelte-ignore a11y-missing-attribute -->
         <a class="new-packet" on:click={newPacket}>
@@ -287,17 +307,17 @@
         flex: 1 1 0;
     }
 
-    .packet-input {
-        border-radius: 8px;
-        background-color: #cccecc;
-        color: #2e2e2e;
-        outline: none;
-        border: none;
-        resize: vertical;
-        height: 175px;
-        font-family: "Andale Mono", monospace;
-        font-size: 12pt;
-        padding: 16px;
+    div.packet-name {
+        display: flex;
+        align-items: center;
+    }
+
+    input.packet-name {
+        flex: 1 1 0;
+    }
+
+    .packet-type {
+        margin-left: 4px;
     }
 
     .parsed-packet {

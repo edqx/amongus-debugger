@@ -4,10 +4,15 @@
 
     import { Buffer } from "buffer/"
     import RegionServer from "../components/RegionServer.svelte";
+    import PacketReader from "../lib/util/PacketReader";
+    import toBuffer from "../lib/toBuffer";
 
     const IPV4_VALIDATE = /^((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))\.((25[0-5])|(2[0-4][0-9])|([0-1]?[0-9]?[0-9]))$/;
 
     let region = load_region();
+    let regionbytes = "";
+
+    regionbytes = serialise_region(region);
 
     function load_region() {
         const storage = localStorage.getItem("region");
@@ -37,6 +42,8 @@
     }
 
     function save_region() {
+        regionbytes = serialise_region(region);
+
         localStorage.setItem("region", JSON.stringify(region));
     }
 
@@ -76,6 +83,24 @@
     }
 
     function download_region() {
+        const element = document.createElement("a");
+        const blob = new Blob([buf]);
+        const url = window.URL.createObjectURL(blob);
+
+        console.log(url);
+
+        element.setAttribute("href", url);
+        element.setAttribute("download", "regionInfo.dat");
+
+        element.style.display = "none";
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    function serialise_region(region) {
         const buf = Buffer.alloc(
             + 4 // Current server idx
             + region.name.length + get_packed_int_sz(region.name.length) // Name of region (+length)
@@ -110,28 +135,34 @@
             cursor = buf.writeUInt8(bytes[2] || 0, cursor);
             cursor = buf.writeUInt8(bytes[3] || 0, cursor);
 
-            cursor = buf.writeInt16LE(server.port, cursor);
+            cursor = buf.writeUInt16LE(server.port, cursor);
             cursor = buf.writeInt32LE(0, cursor);
         }
-        
-        const element = document.createElement("a");
-        const blob = new Blob([buf]);
-        const url = window.URL.createObjectURL(blob);
 
-        console.log(url);
-
-        element.setAttribute("href", url);
-        element.setAttribute("download", "regionInfo.dat");
-
-        element.style.display = "none";
-        document.body.appendChild(element);
-
-        element.click();
-
-        document.body.removeChild(element);
+        return buf.toString("hex").match(/[^\s]{1,2}/g).join(" ");
     }
 
-    function deleteServer(i) {
+    function deserialise_region(buf) {
+        const reader = new PacketReader(buf);
+
+        region.selected = reader.int32LE().value;
+        region.name = reader.string().value;
+        region.pingip = reader.string().value;
+        
+        const num_servers = reader.int32LE().value;
+        region.servers = [];
+        for (let i = 0; i < num_servers; i++) {
+            const server = {};
+            server.name = reader.string().value;
+            server.ip = reader.bytes(4).value.join(".");
+            server.port = reader.uint16LE().value;
+            reader.int32LE();
+
+            region.servers.push(server);
+        }
+    }
+
+    function delete_server(i) {
         region.servers.splice(i, 1);
         region.servers = region.servers;
         
@@ -141,6 +172,34 @@
 
         save_region();
     }
+
+    const file_select = document.createElement("input");
+    file_select.type = "file";
+    file_select.accept = ".dat";
+
+    file_select.style.display = "none";
+    document.body.appendChild(file_select);
+    
+    file_select.onchange = () => {
+        var file = file_select.files[0]; 
+        var reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+
+        reader.onload = readerEvent => {
+            var content = readerEvent.target.result;
+
+            const buffer = Buffer.from(content);
+
+            deserialise_region(buffer);
+        }
+    }
+    
+    function import_file(e) {
+        e.preventDefault();
+
+        file_select.value = "";
+        file_select.click();
+    }
 </script>
 
 <span class="title">Among Us Region Editor</span>
@@ -148,14 +207,16 @@
 <span>Made by <a href="https://github.com/edqx/amongus-debugger">weakeyes</a>.</span>
 <br>
 <div class="center-wrapper">
-    <button class="good" on:click={download_region}>Export ➥</button><br><br>
+    <button class="good" on:click={download_region}>Export ➥</button>
+    <button class="good" on:click={import_file}>Import file ⇓</button><br><br>
+    <textarea class="region-input" style="width: 80%" spellcheck="false" bind:value={regionbytes} on:input={() => deserialise_region(toBuffer(regionbytes))} placeholder="Region data"></textarea><br><br>
     <input bind:value={region.name} on:input={save_region} placeholder="Region name"/>&nbsp;Region name<br>
     <input bind:value={region.pingip} on:input={save_region} placeholder="Ping IP"/>&nbsp;Ping IP<br>
     <h4>Servers <button class="good" on:click={create_server}>+</button></h4><br>
     <div class="server-list">
         {#each region.servers as server, i (server)}
             <div animate:flip={{ duration: 250, easing: quadOut }}>
-                <RegionServer on:input={save_region} bind:selected={region.selected} servers={region.servers} on:delete={() => deleteServer(i)} {i}/>
+                <RegionServer on:input={save_region} bind:selected={region.selected} servers={region.servers} on:delete={() => delete_server(i)} {i}/>
             </div>
         {/each}
     </div>

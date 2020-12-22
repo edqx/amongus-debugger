@@ -25,7 +25,8 @@ export async function dbSharePacket(name, data, serverbound) {
     const ref = await col.add({
         name,
         data,
-        serverbound
+        serverbound,
+        type
     });
 
     return ref.id;

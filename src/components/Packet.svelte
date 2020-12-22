@@ -5,9 +5,10 @@
     import { opcodes } from "../lib/constants/enums.js"
 
     import { createEventDispatcher } from "svelte"
+import { PacketTypes } from "../lib/Workspace.js";
 
     export let packet;
-    export let packeti;
+    export let i;
     export let selected;
 
     const dispatch = createEventDispatcher();
@@ -42,7 +43,7 @@
 
 <!-- svelte-ignore a11y-missing-attribute -->
 <div class="workspace-packet-container">
-    <span class="num">{packeti + 1}.</span>
+    <span class="num">{i + 1}.</span>
     <a class:selected class:erroring={error} class="workspace-packet" on:click={select}>
         <span>{packet.name || "Unnamed packet"}</span><br>
         <span class="num-bytes">{packet.data.length} byte{packet.data.length === 1 ? "" : "s"}
@@ -52,6 +53,7 @@
             - {opcodes[parsed.opcode] || "Unknown"}
         {/if}
         <br>
+        <span>{PacketTypes[packet.type]}</span><br>
         <span class="bound">{packet.serverbound ? "client -> server" : "server -> client"}</span>
     </a>
 </div>

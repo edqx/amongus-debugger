@@ -37,13 +37,15 @@ export class Packet {
         this.name = packet.name || "";
         this.data = packet.data || [];
         this.serverbound = packet.serverbound || false;
+        this.type = packet.type || 0;
     }
 
     toJSON() {
         return {
             name: this.name,
             data: this.data,
-            serverbound: this.serverbound
+            serverbound: this.serverbound,
+            type: this.type
         }
     }
 
@@ -79,3 +81,8 @@ export class Workspace {
         this.packets.splice(this.packets.indexOf(packet), 1);
     }
 }
+
+export const PacketTypes = [
+    "Game server",
+    "Announcement server"
+]
