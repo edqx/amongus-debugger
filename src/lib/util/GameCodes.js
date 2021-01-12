@@ -19,7 +19,7 @@ export function V1Int2Code(bytes) {
     return a + b + c + d;
 }
 
-export function Code2Int(code) {
+export function V2Code2Int(code) {
     var a = V2Map[code.charCodeAt(0) - 65];
     var b = V2Map[code.charCodeAt(1) - 65];
     var c = V2Map[code.charCodeAt(2) - 65];
