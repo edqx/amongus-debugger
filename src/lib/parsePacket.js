@@ -118,7 +118,7 @@ function readVoteState(reader, i) {
     state.reported = {
         name: "Did report?",
         description: "Whether or not the player started the meeting.",
-        value: (byte & 0x0b10000) !== 0,
+        value: (byte & 0x0b0010000) !== 0,
         type: "bool",
         endianness: null,
         startpos: reader.offset,
@@ -130,7 +130,7 @@ function readVoteState(reader, i) {
     state.voted = {
         name: "Has voted?",
         description: "Whether or not the player has voted.",
-        value: (byte & 0x0b100000) !== 0,
+        value: (byte & 0x0b0100000) !== 0,
         type: "bool",
         endianness: null,
         startpos: reader.offset,
@@ -398,12 +398,13 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x01:
                         if (payload.bound === "client") {
-                            if (payload_reader.left > 4) {
+                            const int32le = payload_reader.buffer.readInt32LE(payload_reader.offset);
+                            if (e.disconnect_reasons[int32le]) {
+                                payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.", e.disconnect_reasons);
+                            } else {
                                 payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", V2Int2Code);
                                 payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
                                 payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the host of the game.");
-                            } else {
-                                payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.");
                             }
                         } else {
                             payload.code = payload_reader.int32LE("Game code", "The code of the game to join.");
@@ -785,7 +786,7 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x08:
                         payload.code = payload_reader.int32LE("Game code", "The code for the game that ended.", V2Int2Code);
-                        payload.end_reason = payload_reader.packed("End reason", "The reason for why the game is being ended.", e.endgame_reasons);
+                        payload.end_reason = payload_reader.packed("End reason", "The reason for why the game ended.", e.endgame_reasons);
                         payload.show_ad = payload_reader.bool("Show ad?", "Whether or not an ad should be shown (for mobile).");
                         break;
                     case 0x0a:
@@ -928,7 +929,7 @@ export default function parsePacket(buffer, bound) {
                 packet.reason = packet_reader.uint8("Reason", "The reason for disconnecting, usually empty for serverbound packets.", e.disconnect_reasons);
 
                 if (packet.reason.value === 0x08) {
-                    packet.message = packet_reader.string("Message", "The message attached to a custom disconnect reason (0x08).");
+                    packet.message = packet_reader.string("Message", "The message attached to the disconnect reason.");
                 }
             }
             break;

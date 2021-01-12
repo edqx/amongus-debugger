@@ -37,8 +37,8 @@ export const distances = {
 }
 
 export const endgame_reasons = {
-    0x01: "Voted out imposter.",
-    0x02: "Completed all tasks.",
+    0x00: "Voted out imposter.",
+    0x01: "Completed all tasks.",
     0x02: "Voted out humans.",
     0x03: "Killed all humans.",
     0x04: "Sabotage out of time.",
@@ -145,7 +145,8 @@ export const hat_ids = {
     0x5a: "MiniCrewmate",
     0x5b: "NinjaMask",
     0x5c: "RamHorns",
-    0x5d: "Snowman_2"
+    0x5d: "MiniSnowman",
+    0x5e: "GeoffKeighleyMask"
 }
 
 export const language_ids = {
@@ -217,7 +218,8 @@ export const pet_ids = {
     0x07: "UFO",
     0x08: "Ellie",
     0x09: "Squig",
-    0x0a: "Bedcrab"
+    0x0a: "Bedcrab",
+    0x0b: "Glitch"
 }
 
 export const disconnect_reasons = {

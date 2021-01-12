@@ -12,7 +12,7 @@
     let region = load_region();
     let regionbytes = "";
 
-    regionbytes = serialise_region(region).toString("hex").match(/[^\s]{1,2}/g).join(" ");
+    $: regionbytes = serialise_region(region).toString("hex").match(/[^\s]{1,2}/g).join(" ");
 
     function load_region() {
         const storage = localStorage.getItem("region");
@@ -56,6 +56,8 @@
             ip: "",
             port: 22023
         }];
+
+        region = region;
     }
 
     function get_packed_int_sz(num) {

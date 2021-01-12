@@ -46,9 +46,6 @@ export default function parseAnnouncement(buffer, bound) {
                 warnings: []
             }
 
-            
-            packet.payloads.name = "Payloads";
-
             while (packet_reader.left) {
                 const payload = {};
                 const payload_length = packet_reader.uint16LE("Payload length", "The length of the payload.");
@@ -69,10 +66,8 @@ export default function parseAnnouncement(buffer, bound) {
                         break;
                 }
 
-                packet_reader.jump(payload_reader.end);
+                packet_reader.goto(payload_reader.end);
                 packet.payloads.value.push(payload);
-            
-                break;
             }
             break;
         case 8:
