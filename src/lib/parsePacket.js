@@ -402,7 +402,7 @@ export default function parsePacket(buffer, bound) {
                             if (e.disconnect_reasons[int32le]) {
                                 payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.", e.disconnect_reasons);
 
-                                if (payload.reason === 8 && payload_reader.left > 0) {
+                                if (payload.reason.value === 8 && payload_reader.left > 0) {
                                     payload.message = payload_reader.string("Message", "The custom message for why the client failed to join.");
                                 }
                             } else {
