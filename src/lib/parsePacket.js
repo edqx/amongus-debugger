@@ -401,6 +401,10 @@ export default function parsePacket(buffer, bound) {
                             const int32le = payload_reader.buffer.readInt32LE(payload_reader.offset);
                             if (e.disconnect_reasons[int32le]) {
                                 payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.", e.disconnect_reasons);
+
+                                if (payload.reason === 8 && payload_reader.left > 0) {
+                                    payload.message = payload_reader.string("Message", "The custom message for why the client failed to join.");
+                                }
                             } else {
                                 payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", Int2Code);
                                 payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
