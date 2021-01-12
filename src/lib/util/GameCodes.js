@@ -19,7 +19,7 @@ export function V1Int2Code(bytes) {
     return a + b + c + d;
 }
 
-export function V2Code2Int(code) {
+export function Code2Int(code) {
     var a = V2Map[code.charCodeAt(0) - 65];
     var b = V2Map[code.charCodeAt(1) - 65];
     var c = V2Map[code.charCodeAt(2) - 65];
@@ -32,6 +32,7 @@ export function V2Code2Int(code) {
 }
 
 export function V2Int2Code(bytes) {
+    // Else parse v6 code
     var a = bytes & 0x3FF;
     var b = (bytes >> 10) & 0xFFFFF;
     return V2[a % 26] +
@@ -40,4 +41,12 @@ export function V2Int2Code(bytes) {
         V2[~~(b / 26 % 26)] +
         V2[~~(b / (26 * 26) % 26)] +
         V2[~~(b / (26 * 26 * 26) % 26)];
+}
+
+export function Int2Code(bytes) {
+    return bytes < 0 ? V2Int2Code(bytes) : V1Int2Code(bytes);
+}
+
+export function Code2Int(code) {
+    return code.length === 6 ? V2Int2Code(code) : V1Code2Int(code);
 }

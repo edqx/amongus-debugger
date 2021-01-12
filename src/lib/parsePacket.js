@@ -1,7 +1,7 @@
 import PacketReader from "./util/PacketReader.js"
 
 import { FormatVersion } from "./util/Versions.js"
-import { V2Int2Code } from "./util/GameCodes.js"
+import { Int2Code } from "./util/GameCodes.js"
 import { LerpValue } from "./util/Lerp.js"
 import { ToHex } from "./util/ToHex.js"
 
@@ -402,7 +402,7 @@ export default function parsePacket(buffer, bound) {
                             if (e.disconnect_reasons[int32le]) {
                                 payload.reason = payload_reader.int32LE("Reason", "The reason for why the client could not join the game.", e.disconnect_reasons);
                             } else {
-                                payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", V2Int2Code);
+                                payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", Int2Code);
                                 payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
                                 payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the host of the game.");
                             }
@@ -428,12 +428,12 @@ export default function parsePacket(buffer, bound) {
                         }
                         break;
                     case 0x02:
-                        payload.code = payload_reader.int32LE("Payload code", "The code for the game started.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Payload code", "The code for the game started.", Int2Code);
                         break;
                     case 0x03:
                         break;
                     case 0x04:
-                        payload.code = payload_reader.int32LE("Game code", "The code for the game that the player was removed from.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game that the player was removed from.", Int2Code);
                         payload.clientid = payload_reader.uint32LE("Client ID", "The ID of the client that was removed.");
                         payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the existing or new host of the game.");
                         if (payload_reader.left) {
@@ -446,7 +446,7 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x05:
                     case 0x06:
-                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the game data is for.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the game data is for.", Int2Code);
 
                         if (payload.tag.value === 0x06) {
                             payload.recipientid = payload_reader.packed("Recipient ID", "The client ID of the recipient of the packet.");
@@ -761,7 +761,7 @@ export default function parsePacket(buffer, bound) {
                         }
                         break;
                     case 0x07:
-                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Game code", "The code of the game that the player joined.", Int2Code);
                         payload.clientid = payload_reader.uint32LE("Client ID", "The client ID of the player that joined.");
                         payload.hostid = payload_reader.uint32LE("Host ID", "The client ID of the host of the game.");
 
@@ -785,12 +785,12 @@ export default function parsePacket(buffer, bound) {
                         }
                         break;
                     case 0x08:
-                        payload.code = payload_reader.int32LE("Game code", "The code for the game that ended.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game that ended.", Int2Code);
                         payload.end_reason = payload_reader.packed("End reason", "The reason for why the game ended.", e.endgame_reasons);
                         payload.show_ad = payload_reader.bool("Show ad?", "Whether or not an ad should be shown (for mobile).");
                         break;
                     case 0x0a:
-                        payload.code = payload_reader.int32LE("Game code", "The code for the game being altered.", V2Int2Code);
+                        payload.code = payload_reader.int32LE("Game code", "The code for the game being altered.", Int2Code);
                         payload.tag = payload_reader.uint8("Alter game tag", "The tag for the alter game, i.e what is being changed.", e.alter_tags);
                         switch (e.alter_tags) {
                             case 0x01:
@@ -803,7 +803,7 @@ export default function parsePacket(buffer, bound) {
                             payload.clientid = payload_reader.packed("Client ID", "The player ID to kick.");
                             payload.is_ban = payload_reader.bool("Is Ban?", "Whether or not the player is banned.");
                         } else {
-                            payload.code = payload_reader.int32LE("Game code", "The code for the game where the player is being kicked.", V2Int2Code);
+                            payload.code = payload_reader.int32LE("Game code", "The code for the game where the player is being kicked.", Int2Code);
                             payload.clientid = payload_reader.packed("Client ID", "The player ID to kick.");
                             payload.is_ban = payload_reader.bool("Is Ban?", "Whether or not the player is banned.");
                         }
@@ -878,7 +878,7 @@ export default function parsePacket(buffer, bound) {
                                         game.ipaddr = game_reader.bytes(4, "IP address", "The IP address of the game datacenter.");
                                         game.ipaddr.value = game.ipaddr.value.join(".");
                                         game.port = game_reader.uint16LE("Port", "The port of the game datacenter.");
-                                        game.code = game_reader.int32LE("Game code", "The 6 digit game code for the game.", V2Int2Code);
+                                        game.code = game_reader.int32LE("Game code", "The 6 digit game code for the game.", Int2Code);
                                         game.name = game_reader.string("Name", "The name of the game, i.e. The host's name.");
                                         game.num_players = game_reader.packed("Number of players", "The number of players in the game currently.");
                                         game.age = game_reader.packed("Age", "The age of the game in seconds since its creation.");
