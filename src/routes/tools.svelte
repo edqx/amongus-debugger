@@ -63,7 +63,7 @@
         const buff = toBuffer(v2bytes);
 
         v2code = v2bytes.length ? V2Int2Code(buff.byteLength >= 4 ? buff.readInt32LE(0) : 0) : "";
-        v2num = buff.readInt32LE();
+        v2num = buff.readInt32LE(0);
     }
 
     function setV2Num() {
@@ -132,10 +132,10 @@
     function setPackedIntBytes() {
         let bytes = [];
         let val = packedint;
-		
-		if (val < 0) {
-			val = val >>> 0;
-		}
+
+        if (val < 0) {
+            val = val >>> 0;
+        }   
 
         do {
             let b = val & 0b11111111;

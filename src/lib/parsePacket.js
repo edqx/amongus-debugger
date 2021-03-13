@@ -852,6 +852,7 @@ export default function parsePacket(buffer, bound) {
                         break;
                     case 0x10:
                         if (packet.bound === "server") {
+                            payload_reader.packed("Hardcoded 0", "A hardcoded 0 previously used to determine whether private games would appear in the game listing.");
                             payload.options = readGameOptions(payload_reader, true);
                         } else if (packet.bound === "client") {
                             const message_length = payload_reader.uint16LE("Message length", "The length of the game list payload.");
